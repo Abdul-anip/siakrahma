@@ -8,6 +8,29 @@ $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
+
+
+// Fungsi helper untuk mendapatkan data prodi dalam format JSON
+function getProdiData($conn) {
+    $prodi_data = [];
+    $sql = "SELECT prodiId, prodiJurId, prodiNama, prodiJenjang FROM program_studi WHERE prodiIsAktif = 1 ORDER BY prodiNama ASC";
+    $result = $conn->query($sql);
+    
+    if ($result && $result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $prodi_data[] = [
+                'prodiId' => $row['prodiId'],
+                'prodiJurId' => $row['prodiJurId'],
+                'prodiNama' => $row['prodiNama'],
+                'prodiJenjang' => $row['prodiJenjang']
+            ];
+        }
+    }
+    
+    return $prodi_data;
+}
+
+
 // ===================== FUNGSI SETUP DAN POPULASI DATABASE =====================
 function setup_database_for_demo($conn) {
     // 1. Drop Table
@@ -26,7 +49,24 @@ function setup_database_for_demo($conn) {
         "CREATE TABLE `jurusan` (`jurId` smallint NOT NULL AUTO_INCREMENT, `jurKode` varchar(20) DEFAULT NULL, `jurNama` varchar(100) NOT NULL DEFAULT '', `jurNamaAsing` varchar(100) DEFAULT NULL, `jurIsAktif` tinyint DEFAULT '1', PRIMARY KEY (`jurId`)) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
         "CREATE TABLE `program_studi` (`prodiId` smallint NOT NULL AUTO_INCREMENT, `prodiJurId` smallint DEFAULT NULL, `prodiKode` varchar(20) DEFAULT NULL, `prodiNama` varchar(100) NOT NULL DEFAULT '', `prodiNamaAsing` varchar(100) DEFAULT NULL, `prodiJenjang` varchar(10) DEFAULT NULL, `prodiEmail` varchar(50) DEFAULT NULL, `prodiWebsite` varchar(50) DEFAULT NULL, `prodiIsAktif` tinyint DEFAULT '1', PRIMARY KEY (`prodiId`), CONSTRAINT `prodiJurId_fk` FOREIGN KEY (`prodiJurId`) REFERENCES `jurusan` (`jurId`) ON DELETE RESTRICT ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
         "CREATE TABLE `dosen` (`dsnNidn` char(10) NOT NULL, `dsnJurId` smallint DEFAULT NULL, `dsnProdiId` smallint DEFAULT NULL, `dsnNama` varchar(50) NOT NULL DEFAULT '', `dsnJenisKelaminKode` enum('L','P') DEFAULT 'L', `dsnGelarDepan` varchar(50) DEFAULT NULL, `dsnGelarBelakang` varchar(50) DEFAULT NULL, `dsnFoto` varchar(50) DEFAULT NULL, PRIMARY KEY (`dsnNidn`), CONSTRAINT `dsnJurId_fk` FOREIGN KEY (`dsnJurId`) REFERENCES `jurusan` (`jurId`) ON DELETE RESTRICT ON UPDATE CASCADE, CONSTRAINT `dsnProdiId_fk` FOREIGN KEY (`dsnProdiId`) REFERENCES `program_studi` (`prodiId`) ON DELETE RESTRICT ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
-        "CREATE TABLE `mahasiswa` (`mhsNim` varchar(10) NOT NULL DEFAULT '', `mhsNama` varchar(50) NOT NULL DEFAULT '', `mhsTempatLahir` varchar(50) DEFAULT NULL, `mhsTglLahir` date DEFAULT NULL, `mhsJenisKelamin` enum('L','P') DEFAULT 'L', `mhsJurId` smallint DEFAULT NULL, `mhsProdiId` smallint DEFAULT NULL, `mhsKodeKelas` enum('A','B','C','D') DEFAULT 'A', `mhsStsAkademik` enum('A','L','C','D','K','M') DEFAULT 'A', `mhsSmsAktif` tinyint DEFAULT '0', `mhsFoto` varchar(50) DEFAULT NULL, PRIMARY KEY (`mhsNim`), CONSTRAINT `mhsJurId_fk` FOREIGN KEY (`mhsJurId`) REFERENCES `jurusan` (`jurId`) ON DELETE RESTRICT ON UPDATE CASCADE, CONSTRAINT `mhsProdiId_fk` FOREIGN KEY (`mhsProdiId`) REFERENCES `program_studi` (`prodiId`) ON DELETE RESTRICT ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
+        "CREATE TABLE `mahasiswa` (
+            `mhsNim` varchar(10) NOT NULL DEFAULT '', 
+            `mhsNama` varchar(50) NOT NULL DEFAULT '', 
+            `mhsTempatLahir` varchar(50) DEFAULT NULL, 
+            `mhsTglLahir` date DEFAULT NULL, 
+            `mhsJenisKelamin` enum('L','P') DEFAULT 'L', 
+            `mhsJurId` smallint DEFAULT NULL, 
+            `mhsProdiId` smallint DEFAULT NULL, 
+            `mhsKodeKelas` enum('A','B','C','D') DEFAULT 'A', 
+            `mhsStsAkademik` enum('A','L','C','D','K','M') DEFAULT 'A', 
+            `mhsSmsAktif` tinyint DEFAULT '0', 
+            `mhsFoto` varchar(50) DEFAULT NULL, 
+            `mhsPaId` char(10) DEFAULT NULL, 
+            PRIMARY KEY (`mhsNim`), 
+            CONSTRAINT `mhsJurId_fk` FOREIGN KEY (`mhsJurId`) REFERENCES `jurusan` (`jurId`) ON DELETE RESTRICT ON UPDATE CASCADE, 
+            CONSTRAINT `mhsProdiId_fk` FOREIGN KEY (`mhsProdiId`) REFERENCES `program_studi` (`prodiId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+            CONSTRAINT `mhsPaId_fk` FOREIGN KEY (`mhsPaId`) REFERENCES `dosen` (`dsnNidn`) ON DELETE SET NULL ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
         "CREATE TABLE `kurikulum` (`kurId` int NOT NULL AUTO_INCREMENT, `kurProdiId` smallint DEFAULT NULL, `kurTahun` year NOT NULL DEFAULT '0000', `kurNama` varchar(100) NOT NULL DEFAULT '', `kurIsAktif` tinyint DEFAULT '1', PRIMARY KEY (`kurId`), CONSTRAINT `kurProdiId_fk` FOREIGN KEY (`kurProdiId`) REFERENCES `program_studi` (`prodiId`) ON DELETE RESTRICT ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
         "CREATE TABLE `matakuliah` (`mkId` int NOT NULL AUTO_INCREMENT, `mkKurId` int DEFAULT NULL, `mkKode` varchar(20) NOT NULL DEFAULT '', `mkNama` varchar(100) NOT NULL DEFAULT '', `mkNamaAsing` varchar(100) DEFAULT NULL, `mkSemester` tinyint DEFAULT NULL, `mkSks` tinyint NOT NULL DEFAULT '0', `mkIsAktif` tinyint DEFAULT '1', PRIMARY KEY (`mkId`), UNIQUE KEY `mkUniqueKey` (`mkKurId`,`mkKode`), CONSTRAINT `mkKurId_fk` FOREIGN KEY (`mkKurId`) REFERENCES `kurikulum` (`kurId`) ON DELETE RESTRICT ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
         "CREATE TABLE `tahun_akademik` (`thakdId` smallint NOT NULL DEFAULT '0', `thakdTahun` year NOT NULL DEFAULT '0000', `thakdSemester` enum('1','2') NOT NULL DEFAULT '1', `thakdTglMulai` date DEFAULT NULL, `thakdTglSelesai` date DEFAULT NULL, `thakdIsAktif` tinyint NOT NULL DEFAULT '1', PRIMARY KEY (`thakdId`)) ENGINE=InnoDB DEFAULT CHARSET=latin1;",
@@ -134,6 +174,106 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['form_action'])) {
             exit();
         }
     }
+
+
+
+    // --- Proses Ubah Password ---
+    if ($_POST['form_action'] == 'ubah_password') {
+        $user_id = $_SESSION['appusrID'];
+        $password_lama = $_POST['password_lama'];
+        $password_baru = $_POST['password_baru'];
+        $konfirmasi_password = $_POST['konfirmasi_password'];
+        
+        // Validasi password baru dan konfirmasi
+        if ($password_baru !== $konfirmasi_password) {
+            $error_msg = "Password baru dan konfirmasi password tidak cocok!";
+            header("Location: ?modul=user&submenu=ubah_password&status=error&msg=" . urlencode($error_msg));
+            exit();
+        }
+        
+        // Validasi panjang password
+        if (strlen($password_baru) < 3) {
+            $error_msg = "Password baru minimal 3 karakter!";
+            header("Location: ?modul=user&submenu=ubah_password&status=error&msg=" . urlencode($error_msg));
+            exit();
+        }
+        
+        // Cek password lama
+        $sql_check = "SELECT appusrPassword FROM user WHERE appusrID = '$user_id'";
+        $result_check = $conn->query($sql_check);
+        
+        if ($result_check && $result_check->num_rows == 1) {
+            $user_data = $result_check->fetch_assoc();
+            
+            if ($password_lama === $user_data['appusrPassword']) {
+                // Password lama benar, update password baru
+                $update_sql = "UPDATE user SET appusrPassword = '$password_baru' WHERE appusrID = '$user_id'";
+                
+                if ($conn->query($update_sql) === TRUE) {
+                    $success_msg = "✅ Password berhasil diubah!";
+                    header("Location: ?modul=user&submenu=ubah_password&status=success&msg=" . urlencode($success_msg));
+                    exit();
+                } else {
+                    $error_msg = "❌ Gagal mengubah password: " . $conn->error;
+                    header("Location: ?modul=user&submenu=ubah_password&status=error&msg=" . urlencode($error_msg));
+                    exit();
+                }
+            } else {
+                $error_msg = "❌ Password lama tidak sesuai!";
+                header("Location: ?modul=user&submenu=ubah_password&status=error&msg=" . urlencode($error_msg));
+                exit();
+            }
+        } else {
+            $error_msg = "❌ User tidak ditemukan!";
+            header("Location: ?modul=user&submenu=ubah_password&status=error&msg=" . urlencode($error_msg));
+            exit();
+        }
+    }
+
+
+    // --- Proses Tambah Dosen ---
+    if ($_POST['form_action'] == 'add_dosen') {
+        $dsn_nidn = $conn->real_escape_string($_POST['dsn_nidn']);
+        $dsn_nama = $conn->real_escape_string($_POST['dsn_nama']);
+        $dsn_jenis_kelamin = $conn->real_escape_string($_POST['dsn_jenis_kelamin']);
+        $dsn_gelar_depan = $conn->real_escape_string($_POST['dsn_gelar_depan']);
+        $dsn_gelar_belakang = $conn->real_escape_string($_POST['dsn_gelar_belakang']);
+        $dsn_jur_id = $conn->real_escape_string($_POST['dsn_jur_id']);
+        $dsn_prodi_id = $conn->real_escape_string($_POST['dsn_prodi_id']);
+        
+        // Validasi NIDN (harus 10 digit angka)
+        if (!preg_match('/^[0-9]{10}$/', $dsn_nidn)) {
+            $error_msg = "NIDN harus terdiri dari 10 digit angka!";
+            header("Location: ?modul=datamaster&submenu=dosen&action=add&status=error&msg=" . urlencode($error_msg) . "&dsn_nidn=$dsn_nidn&dsn_nama=$dsn_nama");
+            exit();
+        }
+        
+        // Validasi Nama tidak boleh kosong
+        if (empty($dsn_nama)) {
+            $error_msg = "Nama Dosen tidak boleh kosong!";
+            header("Location: ?modul=datamaster&submenu=dosen&action=add&status=error&msg=" . urlencode($error_msg) . "&dsn_nidn=$dsn_nidn");
+            exit();
+        }
+        
+        $insert_sql = "INSERT INTO dosen (dsnNidn, dsnNama, dsnJenisKelaminKode, dsnGelarDepan, dsnGelarBelakang, dsnJurId, dsnProdiId)
+            VALUES ('$dsn_nidn', '$dsn_nama', '$dsn_jenis_kelamin', '$dsn_gelar_depan', '$dsn_gelar_belakang', '$dsn_jur_id', '$dsn_prodi_id')";
+        
+        if ($conn->query($insert_sql) === TRUE) {
+            $message = "✅ Data Dosen " . $dsn_nama . " berhasil ditambahkan!";
+            header("Location: ?modul=datamaster&submenu=dosen&status=success&msg=" . urlencode($message) . "&filter_prodi=$dsn_prodi_id");
+            exit();
+        } else {
+            if ($conn->errno == 1062) {
+                $error_msg = "NIDN $dsn_nidn sudah terdaftar. Gagal menambahkan data.";
+            } else {
+                $error_msg = "❌ Gagal menambahkan data Dosen: " . $conn->error;
+            }
+            header("Location: ?modul=datamaster&submenu=dosen&action=add&status=error&msg=" . urlencode($error_msg) . "&dsn_nidn=$dsn_nidn&dsn_nama=$dsn_nama");
+            exit();
+        }
+    }
+
+
 }
 // ===================== PHP Setup & Penentuan Konten =====================
 session_start();
@@ -636,7 +776,7 @@ if ($modul == 'beranda') {
         // === 4. SUBMENU MAHASISWA KELAS (Wajib Filter Kelas)
         // =======================================================
         $kelas_needed = true;
-        $table_header = '<thead><tr class="header-table-mhs"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Jenis Kelamin</th><th>Status Akademik</th></th><th>Aksi</th></tr></thead>';
+        $table_header = '<thead><tr class="header-table-mhs"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Jenis Kelamin</th><th>Status Akademik</th><th>Dosen PA</th><th>Aksi</th></tr></thead>';
         $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, true);
         $submenu_title_display = 'Daftar Data Mahasiswa Kelas' . (($kls_id_selected > 0) ? ' (Kelas ' . $kelas_nama . ')' : '');
         $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
@@ -644,7 +784,6 @@ if ($modul == 'beranda') {
         if ($is_filtered_search) {
             if ($kls_id_selected > 0) {
                 // Filter telah diklik dan Kelas dipilih
-				$thakd_id = $thakd_id_selected;
                 $sql_mahasiswa_kelas = "SELECT m.mhsNim, m.mhsNama, m.mhsJenisKelamin, m.mhsStsAkademik, d.dsnNama AS PaNama 
                                         FROM mahasiswa m 
                                         JOIN kelas_mahasiswa km ON m.mhsNim = km.klsmhsMhsNim 
@@ -983,59 +1122,282 @@ if ($modul == 'beranda') {
                  </table>';
         
         } else if ($submenu == 'dosen') {
-             // --- 5. DOSEN (Memakai filter form - Prodi Wajib) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-dosen"><th>No.</th><th>NIDN</th><th>Nama Dosen</th><th>Program Studi</th><th>Status Aktif</th><th>Aksi</th></tr></thead>';
-            $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
-            
-            $table_data = '<tr><td colspan="6" style="text-align: center; padding: 20px;"></td></tr>';
-            $result_dosen = null; 
-            
-            if ($is_filtered_search) {
-                if (!empty($filter_prodi)) {
-                    $where_clause = " WHERE p.prodiId = '$filter_prodi' ";
-                    $sql_dosen = "SELECT d.dsnNidn, d.dsnNama, d.dsnGelarBelakang, p.prodiNama
-                                  FROM dosen d LEFT JOIN program_studi p ON d.dsnProdiId = p.prodiId " . $where_clause . " ORDER BY d.dsnNama ASC";
-                    $result_dosen = $conn->query($sql_dosen);
-                    
-                    if ($result_dosen && $result_dosen->num_rows > 0) {
-                         $no = 1;
-                         $table_data = '';
-                         while($row = $result_dosen->fetch_assoc()) {
-                             $nama_lengkap = htmlspecialchars($row['dsnNama']) . (empty($row['dsnGelarBelakang']) ? '' : ', ' . htmlspecialchars($row['dsnGelarBelakang']));
-                             $status = 'Aktif'; // Asumsi Aktif karena kolom dsnIsAktif tidak ada di skema
-                             $table_data .= '
-                                 <tr>
-                                     <td>' . $no++ . '.</td>
-                                     <td>' . htmlspecialchars($row['dsnNidn'] ?? 'N/A') . '</td>
-                                     <td style="text-align: left; font-weight: bold;">' . $nama_lengkap . '</td>
-                                     <td>' . htmlspecialchars($row['prodiNama'] ?? 'N/A') . '</td>
-                                     <td>' . $status . '</td>
-                                     <td>
-                                         <a href="?modul=datamaster&submenu=dosen&action=edit&id=' . $row['dsnNidn'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
-                                         <a href="?modul=datamaster&submenu=dosen&action=delete&id=' . $row['dsnNidn'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['dsnNama'] . '?\')">Hapus</a>
-                                     </td>
-                                 </tr>';
-                         }
-                    } else {
-                         $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Dosen untuk Program Studi yang dipilih.**</td></tr>';
-                    }
-                } else {
-                     $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
-                }
+    // --- 5. DOSEN (Memakai filter form - Prodi Wajib) --- 
+    $table_header = '<thead><tr class="header-table-datamaster-dosen"><th>No.</th><th>NIDN</th><th>Nama Dosen</th><th>Jenis Kelamin</th><th>Program Studi</th><th>Aksi</th></tr></thead>';
+    $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
+    
+    // Cek apakah action adalah 'add' (Form Tambah)
+    if ($action == 'add') {
+        // Ambil data Jurusan untuk dropdown
+        $jurusan_options = '';
+        $sql_jurusan_list = "SELECT jurId, jurNama FROM jurusan WHERE jurIsAktif = 1 ORDER BY jurNama ASC";
+        $result_jurusan_list = $conn->query($sql_jurusan_list);
+        if ($result_jurusan_list && $result_jurusan_list->num_rows > 0) {
+            while($row = $result_jurusan_list->fetch_assoc()) {
+                $jurusan_options .= '<option value="' . $row['jurId'] . '">' . htmlspecialchars($row['jurNama']) . '</option>';
             }
-             $content_html = ' 
-                 <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
-                 ' . $pencarian_form . ' 
-                 <div class="data-actions">' . $add_button_datamaster . '</div> 
-                 <table class="data-kelas-table"> 
-                     ' . $table_header . ' 
-                     <tbody> 
-                         ' . $table_data . ' 
-                     </tbody> 
-                 </table>';
-        } else if ($submenu == 'mahasiswa') {
+        }
+        
+        $content_html = '
+        <style>
+            .form-dosen-container {
+                max-width: 600px;
+                margin: 30px auto;
+            }
+            .form-dosen {
+                background-color: #f9f9f9;
+                padding: 30px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .form-dosen h3 {
+                text-align: center;
+                color: var(--color-dark-blue);
+                border-bottom: 2px solid var(--color-header-orange);
+                padding-bottom: 10px;
+                margin-top: 0;
+                margin-bottom: 25px;
+            }
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            .form-group-full {
+                grid-column: 1 / -1;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+                color: #555;
+            }
+            .form-group input, 
+            .form-group select {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                font-size: 1em;
+            }
+            .form-group input:focus, 
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--color-accent-blue);
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            }
+            .required {
+                color: red;
+            }
+            .info-text {
+                font-size: 0.85em;
+                color: #666;
+                margin-top: 5px;
+            }
+        </style>
+        
+        <h2 class="submenu-data-title">Tambah Data Dosen</h2>
+        
+        <div class="form-dosen-container">
+            <form class="form-dosen" method="POST" action="" onsubmit="return validateFormDosen()">
+                <input type="hidden" name="form_action" value="add_dosen">
+                <h3>Formulir Data Dosen</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dsn_nidn">NIDN <span class="required">*</span></label>
+                        <input type="text" id="dsn_nidn" name="dsn_nidn" required 
+                               placeholder="Contoh: 0006058102" 
+                               pattern="[0-9]{10}" 
+                               maxlength="10"
+                               value="' . (isset($_GET['dsn_nidn']) ? htmlspecialchars($_GET['dsn_nidn']) : '') . '">
+                        <div class="info-text">10 digit angka</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dsn_jenis_kelamin">Jenis Kelamin <span class="required">*</span></label>
+                        <select id="dsn_jenis_kelamin" name="dsn_jenis_kelamin" required>
+                            <option value="L">Laki-laki</option>
+                            <option value="P">Perempuan</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group form-group-full">
+                    <label for="dsn_nama">Nama Dosen <span class="required">*</span></label>
+                    <input type="text" id="dsn_nama" name="dsn_nama" required 
+                           placeholder="Contoh: Amelia Yolanda"
+                           value="' . (isset($_GET['dsn_nama']) ? htmlspecialchars($_GET['dsn_nama']) : '') . '">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dsn_gelar_depan">Gelar Depan</label>
+                        <input type="text" id="dsn_gelar_depan" name="dsn_gelar_depan" 
+                               placeholder="Contoh: Dr.">
+                        <div class="info-text">Opsional</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dsn_gelar_belakang">Gelar Belakang</label>
+                        <input type="text" id="dsn_gelar_belakang" name="dsn_gelar_belakang" 
+                               placeholder="Contoh: ST., MT">
+                        <div class="info-text">Opsional</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dsn_jur_id">Jurusan <span class="required">*</span></label>
+                        <select id="dsn_jur_id" name="dsn_jur_id" required onchange="loadProdiByJurusan(this.value)">
+                            <option value="">-- Pilih Jurusan --</option>
+                            ' . $jurusan_options . '
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dsn_prodi_id">Program Studi <span class="required">*</span></label>
+                        <select id="dsn_prodi_id" name="dsn_prodi_id" required>
+                            <option value="">-- Pilih Jurusan Dulu --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-save">💾 Simpan Data Dosen</button>
+            </form>
+        </div>
+        
+        <a href="?modul=datamaster&submenu=dosen" class="back-link">← Kembali ke Daftar Data</a>
+        
+        <script>
+            function validateFormDosen() {
+                var nidn = document.getElementById("dsn_nidn").value;
+                var nama = document.getElementById("dsn_nama").value;
+                var jurusan = document.getElementById("dsn_jur_id").value;
+                var prodi = document.getElementById("dsn_prodi_id").value;
+                
+                // Validasi NIDN
+                if (!/^[0-9]{10}$/.test(nidn)) {
+                    alert("❌ NIDN harus terdiri dari 10 digit angka!");
+                    return false;
+                }
+                
+                // Validasi Nama
+                if (nama.trim() === "") {
+                    alert("❌ Nama Dosen tidak boleh kosong!");
+                    return false;
+                }
+                
+                // Validasi Jurusan
+                if (jurusan === "") {
+                    alert("❌ Jurusan harus dipilih!");
+                    return false;
+                }
+                
+                // Validasi Program Studi
+                if (prodi === "") {
+                    alert("❌ Program Studi harus dipilih!");
+                    return false;
+                }
+                
+                return confirm("Apakah data yang diinput sudah benar?");
+            }
+            
+            // Fungsi untuk load Program Studi berdasarkan Jurusan yang dipilih
+            function loadProdiByJurusan(jurId) {
+                var prodiSelect = document.getElementById("dsn_prodi_id");
+                prodiSelect.innerHTML = "<option value=\"\">-- Loading... --</option>";
+                
+                if (jurId === "") {
+                    prodiSelect.innerHTML = "<option value=\"\">-- Pilih Jurusan Dulu --</option>";
+                    return;
+                }
+                
+                // Simulasi load prodi (dalam implementasi nyata, gunakan AJAX)
+                // Untuk saat ini, kita load semua prodi dan filter di client side
+                var allProdi = ' . json_encode(getProdiData($conn)) . ';
+                
+                prodiSelect.innerHTML = "<option value=\"\">-- Pilih Program Studi --</option>";
+                
+                allProdi.forEach(function(prodi) {
+                    if (prodi.prodiJurId == jurId) {
+                        var option = document.createElement("option");
+                        option.value = prodi.prodiId;
+                        option.text = prodi.prodiJenjang + " - " + prodi.prodiNama;
+                        prodiSelect.appendChild(option);
+                    }
+                });
+            }
+        </script>
+        ';
+    } else {
+        // Tampilan Daftar Dosen
+        $table_data = '<tr><td colspan="6" style="text-align: center; padding: 20px;"></td></tr>';
+        $result_dosen = null; 
+        
+        if ($is_filtered_search) {
+            if (!empty($filter_prodi)) {
+                $where_clause = " WHERE p.prodiId = '$filter_prodi' ";
+                $sql_dosen = "SELECT d.dsnNidn, d.dsnNama, d.dsnJenisKelaminKode, d.dsnGelarDepan, d.dsnGelarBelakang, p.prodiNama, p.prodiJenjang
+                              FROM dosen d 
+                              LEFT JOIN program_studi p ON d.dsnProdiId = p.prodiId " . $where_clause . " 
+                              ORDER BY d.dsnNama ASC";
+                $result_dosen = $conn->query($sql_dosen);
+                
+                if ($result_dosen && $result_dosen->num_rows > 0) {
+                     $no = 1;
+                     $table_data = '';
+                     while($row = $result_dosen->fetch_assoc()) {
+                         $nama_lengkap = '';
+                         if (!empty($row['dsnGelarDepan'])) {
+                             $nama_lengkap .= htmlspecialchars($row['dsnGelarDepan']) . ' ';
+                         }
+                         $nama_lengkap .= htmlspecialchars($row['dsnNama']);
+                         if (!empty($row['dsnGelarBelakang'])) {
+                             $nama_lengkap .= ', ' . htmlspecialchars($row['dsnGelarBelakang']);
+                         }
+                         
+                         $jenis_kelamin = ($row['dsnJenisKelaminKode'] == 'L') ? 'Laki-laki' : 'Perempuan';
+                         $prodi_info = htmlspecialchars($row['prodiJenjang']) . ' - ' . htmlspecialchars($row['prodiNama']);
+                         
+                         $table_data .= '
+                             <tr>
+                                 <td>' . $no++ . '.</td>
+                                 <td>' . htmlspecialchars($row['dsnNidn']) . '</td>
+                                 <td style="text-align: left; font-weight: bold;">' . $nama_lengkap . '</td>
+                                 <td>' . $jenis_kelamin . '</td>
+                                 <td style="text-align: left;">' . $prodi_info . '</td>
+                                 <td>
+                                     <a href="?modul=datamaster&submenu=dosen&action=edit&id=' . $row['dsnNidn'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
+                                     <a href="?modul=datamaster&submenu=dosen&action=delete&id=' . $row['dsnNidn'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['dsnNama'] . '?\')">Hapus</a>
+                                 </td>
+                             </tr>';
+                     }
+                } else {
+                     $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Dosen untuk Program Studi yang dipilih.**</td></tr>';
+                }
+            } else {
+                 $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
+            }
+        }
+        
+         $content_html = ' 
+             <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
+             ' . $pencarian_form . ' 
+             <div class="data-actions">' . $add_button_datamaster . '</div> 
+             <table class="data-kelas-table"> 
+                 ' . $table_header . ' 
+                 <tbody> 
+                     ' . $table_data . ' 
+                 </tbody> 
+             </table>';
+        } 
+        }else if ($submenu == 'mahasiswa') {
              // --- 6. MAHASISWA (Memakai filter form - Prodi Wajib) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-mahasiswa"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Program Studi</th></th><th>Status Akademik</th><th>Aksi</th></tr></thead>';
+            $table_header = '<thead><tr class="header-table-datamaster-mahasiswa"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Program Studi</th></th><th>Status Akademik</th><th>Dosen PA</th><th>Aksi</th></tr></thead>';
             $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
             
             $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
@@ -1104,7 +1466,188 @@ if ($modul == 'beranda') {
     }
 	
 // --- LOGIKA UNTUK MODUL LOGIN (TAMPILAN LOGIN) ---
-} else if ($modul == 'login') {
+} else if ($modul == 'user') {
+    $judul_halaman = "Modul User";
+    $breadcrumb_path = '<a href="?modul=beranda">Beranda</a> <span class="breadcrumb-separator">  ►  </span> User';
+    
+    if ($submenu == 'ubah_password') {
+        // =======================================================
+        // === SUBMENU UBAH PASSWORD
+        // =======================================================
+        $submenu_title_display = 'Ubah Password';
+        
+        $content_html = '
+        <style>
+            .password-form-container {
+                max-width: 500px;
+                margin: 30px auto;
+                background-color: #fff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                border: 1px solid #ddd;
+            }
+            .password-form-container h3 {
+                text-align: center;
+                color: var(--color-dark-blue);
+                border-bottom: 2px solid var(--color-header-orange);
+                padding-bottom: 10px;
+                margin-bottom: 25px;
+            }
+            .password-form-container .info-box {
+                background-color: #e7f3ff;
+                border-left: 4px solid #2196F3;
+                padding: 12px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+            }
+            .password-form-container .info-box p {
+                margin: 5px 0;
+                font-size: 0.9em;
+                color: #333;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: #555;
+            }
+            .form-group input[type="password"] {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                font-size: 1em;
+            }
+            .form-group input[type="password"]:focus {
+                outline: none;
+                border-color: var(--color-accent-blue);
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            }
+            .btn-submit-password {
+                padding: 12px 20px;
+                background-color: var(--color-btn-save);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: bold;
+                width: 100%;
+                font-size: 1.1em;
+                margin-top: 10px;
+            }
+            .btn-submit-password:hover {
+                background-color: #0056b3;
+            }
+            .password-requirements {
+                background-color: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 12px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+                font-size: 0.9em;
+            }
+            .password-requirements ul {
+                margin: 5px 0 0 20px;
+                padding: 0;
+            }
+        </style>
+        
+        <h2 class="submenu-data-title">' . $submenu_title_display . '</h2>
+        
+        <div class="password-form-container">
+            <h3>Form Ubah Password</h3>
+            
+            <div class="info-box">
+                <p><strong>User ID:</strong> ' . htmlspecialchars($_SESSION['appusrID']) . '</p>
+                <p><strong>Nama:</strong> ' . htmlspecialchars($_SESSION['appusrNama']) . '</p>
+            </div>
+            
+            <div class="password-requirements">
+                <strong>⚠️ Persyaratan Password:</strong>
+                <ul>
+                    <li>Password minimal 3 karakter</li>
+                    <li>Gunakan kombinasi huruf dan angka untuk keamanan lebih baik</li>
+                    <li>Jangan gunakan password yang mudah ditebak</li>
+                </ul>
+            </div>
+            
+            <form method="POST" action="" onsubmit="return validatePassword()">
+                <input type="hidden" name="form_action" value="ubah_password">
+                
+                <div class="form-group">
+                    <label for="password_lama">Password Lama <span style="color: red;">*</span></label>
+                    <input type="password" id="password_lama" name="password_lama" required placeholder="Masukkan password lama">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password_baru">Password Baru <span style="color: red;">*</span></label>
+                    <input type="password" id="password_baru" name="password_baru" required placeholder="Masukkan password baru" minlength="3">
+                </div>
+                
+                <div class="form-group">
+                    <label for="konfirmasi_password">Konfirmasi Password Baru <span style="color: red;">*</span></label>
+                    <input type="password" id="konfirmasi_password" name="konfirmasi_password" required placeholder="Masukkan ulang password baru" minlength="3">
+                </div>
+                
+                <button type="submit" class="btn-submit-password">💾 Ubah Password</button>
+            </form>
+        </div>
+        
+        <script>
+            function validatePassword() {
+                var passwordBaru = document.getElementById("password_baru").value;
+                var konfirmasiPassword = document.getElementById("konfirmasi_password").value;
+                
+                if (passwordBaru !== konfirmasiPassword) {
+                    alert("❌ Password baru dan konfirmasi password tidak cocok!");
+                    return false;
+                }
+                
+                if (passwordBaru.length < 3) {
+                    alert("❌ Password baru minimal 3 karakter!");
+                    return false;
+                }
+                
+                return confirm("Apakah Anda yakin ingin mengubah password?");
+            }
+        </script>
+        ';
+        
+    } else if ($submenu == 'kotak_pesan') {
+        // =======================================================
+        // === SUBMENU KOTAK PESAN (Placeholder)
+        // =======================================================
+        $content_html = '
+        <h2 class="submenu-data-title">Kotak Pesan</h2>
+        <div style="padding: 40px; text-align: center; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;">
+            <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Pesan" style="width: 100px; opacity: 0.5; margin-bottom: 20px;">
+            <h3 style="color: #666;">Fitur Kotak Pesan</h3>
+            <p style="color: #999; margin-top: 10px;">Fitur ini akan segera tersedia</p>
+        </div>
+        ';
+        
+    } else {
+        // Submenu default User
+        $content_html = '
+            <h2>Daftar Submenu Modul User</h2> 
+            <hr> 
+            <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <a href="?modul=user&submenu=kotak_pesan" class="icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Kotak Pesan">
+                    <span>Kotak Pesan</span>
+                </a>
+                <a href="?modul=user&submenu=ubah_password" class="icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2889/2889676.png" alt="Ubah Password">
+                    <span>Ubah Password</span>
+                </a>
+            </div>';
+    }   
+    } else if ($modul == 'login') {
     $judul_halaman = "Login Sistem";
     $breadcrumb_path = '» Login';
     
