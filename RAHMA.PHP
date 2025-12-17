@@ -243,6 +243,119 @@ if ($_POST['form_action'] == 'add_mahasiswa') {
 }
 
 
+// --- Proses Tambah Kurikulum ---
+if ($_POST['form_action'] == 'add_kurikulum') {
+    $kur_prodi_id = $conn->real_escape_string($_POST['kur_prodi_id']);
+    $kur_tahun = $conn->real_escape_string($_POST['kur_tahun']);
+    $kur_nama = $conn->real_escape_string($_POST['kur_nama']);
+    $kur_is_aktif = isset($_POST['kur_is_aktif']) ? 1 : 0;
+    
+    // Validasi Tahun (harus 4 digit)
+    if (!preg_match('/^[0-9]{4}$/', $kur_tahun)) {
+        $error_msg = "Tahun harus terdiri dari 4 digit angka!";
+        header("Location: ?modul=datamaster&submenu=kurikulum&action=add&status=error&msg=" . urlencode($error_msg) . "&kur_tahun=$kur_tahun&kur_nama=" . urlencode($kur_nama));
+        exit();
+    }
+    
+    // Validasi Nama tidak boleh kosong
+    if (empty($kur_nama)) {
+        $error_msg = "Nama Kurikulum tidak boleh kosong!";
+        header("Location: ?modul=datamaster&submenu=kurikulum&action=add&status=error&msg=" . urlencode($error_msg) . "&kur_tahun=$kur_tahun");
+        exit();
+    }
+    
+    // Cek apakah kurikulum dengan nama yang sama sudah ada untuk prodi tersebut
+    $check_sql = "SELECT kurId FROM kurikulum WHERE kurProdiId = '$kur_prodi_id' AND kurNama = '$kur_nama'";
+    $check_result = $conn->query($check_sql);
+    
+    if ($check_result && $check_result->num_rows > 0) {
+        $error_msg = "Kurikulum dengan nama '$kur_nama' sudah ada untuk Program Studi ini!";
+        header("Location: ?modul=datamaster&submenu=kurikulum&action=add&status=error&msg=" . urlencode($error_msg) . "&kur_tahun=$kur_tahun&kur_nama=" . urlencode($kur_nama));
+        exit();
+    }
+    
+    $insert_sql = "INSERT INTO kurikulum (kurProdiId, kurTahun, kurNama, kurIsAktif)
+        VALUES ('$kur_prodi_id', '$kur_tahun', '$kur_nama', $kur_is_aktif)";
+    
+    if ($conn->query($insert_sql) === TRUE) {
+        $message = "✅ Data Kurikulum '$kur_nama' berhasil ditambahkan!";
+        header("Location: ?modul=datamaster&submenu=kurikulum&status=success&msg=" . urlencode($message));
+        exit();
+    } else {
+        $error_msg = "❌ Gagal menambahkan data Kurikulum: " . $conn->error;
+        header("Location: ?modul=datamaster&submenu=kurikulum&action=add&status=error&msg=" . urlencode($error_msg) . "&kur_tahun=$kur_tahun&kur_nama=" . urlencode($kur_nama));
+        exit();
+    }
+}
+
+
+// --- Proses Tambah Matakuliah ---
+if ($_POST['form_action'] == 'add_matakuliah') {
+    $mk_kur_id = $conn->real_escape_string($_POST['mk_kur_id']);
+    $mk_kode = $conn->real_escape_string($_POST['mk_kode']);
+    $mk_nama = $conn->real_escape_string($_POST['mk_nama']);
+    $mk_nama_asing = $conn->real_escape_string($_POST['mk_nama_asing']);
+    $mk_semester = $conn->real_escape_string($_POST['mk_semester']);
+    $mk_sks = $conn->real_escape_string($_POST['mk_sks']);
+    $mk_is_aktif = isset($_POST['mk_is_aktif']) ? 1 : 0;
+    
+    // Validasi Kode Matakuliah (minimal 3 karakter)
+    if (strlen($mk_kode) < 3) {
+        $error_msg = "Kode Matakuliah minimal 3 karakter!";
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode&mk_nama=" . urlencode($mk_nama));
+        exit();
+    }
+    
+    // Validasi Nama tidak boleh kosong
+    if (empty($mk_nama)) {
+        $error_msg = "Nama Matakuliah tidak boleh kosong!";
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode");
+        exit();
+    }
+    
+    // Validasi Semester (1-8)
+    if (!is_numeric($mk_semester) || $mk_semester < 1 || $mk_semester > 8) {
+        $error_msg = "Semester harus antara 1-8!";
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode&mk_nama=" . urlencode($mk_nama));
+        exit();
+    }
+    
+    // Validasi SKS (1-6)
+    if (!is_numeric($mk_sks) || $mk_sks < 1 || $mk_sks > 6) {
+        $error_msg = "SKS harus antara 1-6!";
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode&mk_nama=" . urlencode($mk_nama));
+        exit();
+    }
+    
+    // Cek apakah Kode MK sudah ada untuk kurikulum yang sama
+    $check_sql = "SELECT mkId FROM matakuliah WHERE mkKurId = '$mk_kur_id' AND mkKode = '$mk_kode'";
+    $check_result = $conn->query($check_sql);
+    
+    if ($check_result && $check_result->num_rows > 0) {
+        $error_msg = "Kode Matakuliah '$mk_kode' sudah ada untuk Kurikulum ini!";
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode&mk_nama=" . urlencode($mk_nama));
+        exit();
+    }
+    
+    $insert_sql = "INSERT INTO matakuliah (mkKurId, mkKode, mkNama, mkNamaAsing, mkSemester, mkSks, mkIsAktif)
+        VALUES ('$mk_kur_id', '$mk_kode', '$mk_nama', '$mk_nama_asing', '$mk_semester', '$mk_sks', $mk_is_aktif)";
+    
+    if ($conn->query($insert_sql) === TRUE) {
+        $message = "✅ Data Matakuliah '$mk_nama' (Kode: $mk_kode) berhasil ditambahkan!";
+        header("Location: ?modul=datamaster&submenu=matkul&status=success&msg=" . urlencode($message));
+        exit();
+    } else {
+        if ($conn->errno == 1062) {
+            $error_msg = "Kode Matakuliah '$mk_kode' sudah ada untuk Kurikulum ini!";
+        } else {
+            $error_msg = "❌ Gagal menambahkan data Matakuliah: " . $conn->error;
+        }
+        header("Location: ?modul=datamaster&submenu=matkul&action=add&status=error&msg=" . urlencode($error_msg) . "&mk_kode=$mk_kode&mk_nama=" . urlencode($mk_nama));
+        exit();
+    }
+}
+
+
 
     // --- Proses Ubah Password ---
     if ($_POST['form_action'] == 'ubah_password') {
@@ -1177,96 +1290,534 @@ if ($modul == 'beranda') {
             </table>';
     }
 } else if ($submenu == 'kurikulum') {
-             // --- 3. KURIKULUM (Tidak pakai filter form) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-kurikulum"><th>No.</th><th>Nama Kurikulum</th><th>Program Studi</th><th>Tahun</th><th>Status Aktif</th><th>Aksi</th></tr></thead>';
-            $sql_kurikulum = "SELECT k.kurId, k.kurNama, k.kurTahun, k.kurIsAktif, p.prodiNama 
-                              FROM kurikulum k JOIN program_studi p ON k.kurProdiId = p.prodiId ORDER BY k.kurTahun DESC, p.prodiNama ASC";
-            $result_kurikulum = $conn->query($sql_kurikulum);
-            
-            if ($result_kurikulum && $result_kurikulum->num_rows > 0) {
-                $no = 1;
-                $table_data = '';
-                while($row = $result_kurikulum->fetch_assoc()) {
-                    $status = ($row['kurIsAktif'] == 1) ? 'Aktif' : 'Non-Aktif';
-                    $table_data .= '
-                        <tr>
-                            <td>' . $no++ . '.</td>
-                            <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['kurNama']) . '</td>
-                            <td style="text-align: left;">' . htmlspecialchars($row['prodiNama']) . '</td>
-                            <td>' . htmlspecialchars($row['kurTahun']) . '</td>
-                            <td>' . $status . '</td>
-                            <td>
-                                <a href="?modul=datamaster&submenu=kurikulum&action=edit&id=' . $row['kurId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
-                                <a href="?modul=datamaster&submenu=kurikulum&action=delete&id=' . $row['kurId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['kurNama'] . '?\')">Hapus</a>
-                            </td>
-                        </tr>';
+    // --- 3. KURIKULUM (Tidak pakai filter form) --- 
+    $table_header = '<thead><tr class="header-table-datamaster-kurikulum"><th>No.</th><th>Nama Kurikulum</th><th>Program Studi</th><th>Tahun</th><th>Status Aktif</th><th>Aksi</th></tr></thead>';
+    
+    // Cek jika action adalah 'add' (Form Tambah)
+    if ($action == 'add') {
+        $action_text = 'Tambah';
+        
+        // Get nilai dari URL untuk retensi jika ada error
+        $kur_tahun = isset($_GET['kur_tahun']) ? htmlspecialchars($_GET['kur_tahun']) : date('Y');
+        $kur_nama = isset($_GET['kur_nama']) ? htmlspecialchars($_GET['kur_nama']) : '';
+        
+        $content_html = '
+        <style>
+            .form-kurikulum-container {
+                max-width: 600px;
+                margin: 30px auto;
+            }
+            .form-kurikulum {
+                background-color: #f9f9f9;
+                padding: 30px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .form-kurikulum h3 {
+                text-align: center;
+                color: var(--color-dark-blue);
+                border-bottom: 2px solid var(--color-header-orange);
+                padding-bottom: 10px;
+                margin-top: 0;
+                margin-bottom: 25px;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: #555;
+            }
+            .form-group input, 
+            .form-group select {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                font-size: 1em;
+            }
+            .form-group input:focus, 
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--color-accent-blue);
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            }
+            .required {
+                color: red;
+            }
+            .checkbox-group {
+                display: flex;
+                align-items: center;
+                margin-top: 15px;
+            }
+            .checkbox-group input[type="checkbox"] {
+                width: auto;
+                margin-right: 10px;
+            }
+            .info-text {
+                font-size: 0.85em;
+                color: #666;
+                margin-top: 5px;
+            }
+        </style>
+        
+        <h2 class="submenu-data-title">Tambah Data Kurikulum</h2>
+        
+        <div class="form-kurikulum-container">
+            <form class="form-kurikulum" method="POST" action="" onsubmit="return validateFormKurikulum()">
+                <input type="hidden" name="form_action" value="add_kurikulum">
+                <h3>Formulir Data Kurikulum</h3>
+                
+                <div class="form-group">
+                    <label for="kur_prodi_id">Program Studi <span class="required">*</span></label>
+                    <select id="kur_prodi_id" name="kur_prodi_id" required>
+                        <option value="">-- Pilih Program Studi --</option>
+                        ' . $prodi_options . '
+                    </select>
+                    <div class="info-text">Pilih program studi untuk kurikulum ini</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="kur_tahun">Tahun Kurikulum <span class="required">*</span></label>
+                    <input type="text" id="kur_tahun" name="kur_tahun" 
+                           value="' . $kur_tahun . '" 
+                           required 
+                           placeholder="Contoh: 2024" 
+                           pattern="[0-9]{4}"
+                           maxlength="4"
+                           title="Tahun harus 4 digit angka">
+                    <div class="info-text">Format: YYYY (4 digit tahun)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="kur_nama">Nama Kurikulum <span class="required">*</span></label>
+                    <input type="text" id="kur_nama" name="kur_nama" 
+                           value="' . $kur_nama . '" 
+                           required 
+                           placeholder="Contoh: Kurikulum 2024">
+                    <div class="info-text">Nama kurikulum yang akan ditampilkan</div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="kur_is_aktif" name="kur_is_aktif" value="1" checked>
+                    <label for="kur_is_aktif" style="margin: 0; font-weight: normal;">
+                        Status Aktif (Centang jika kurikulum ini sedang digunakan)
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-save">💾 Simpan Data Kurikulum</button>
+            </form>
+        </div>
+        
+        <a href="?modul=datamaster&submenu=kurikulum" class="back-link">← Kembali ke Daftar Data</a>
+        
+        <script>
+            function validateFormKurikulum() {
+                var prodi = document.getElementById("kur_prodi_id").value;
+                var tahun = document.getElementById("kur_tahun").value;
+                var nama = document.getElementById("kur_nama").value;
+                
+                // Validasi Program Studi
+                if (prodi === "") {
+                    alert("❌ Program Studi harus dipilih!");
+                    return false;
+                }
+                
+                // Validasi Tahun
+                if (!/^[0-9]{4}$/.test(tahun)) {
+                    alert("❌ Tahun harus terdiri dari 4 digit angka!");
+                    return false;
+                }
+                
+                var tahunNum = parseInt(tahun);
+                var tahunSekarang = new Date().getFullYear();
+                
+                if (tahunNum < 2000 || tahunNum > (tahunSekarang + 5)) {
+                    alert("❌ Tahun harus antara 2000 dan " + (tahunSekarang + 5) + "!");
+                    return false;
+                }
+                
+                // Validasi Nama
+                if (nama.trim() === "") {
+                    alert("❌ Nama Kurikulum tidak boleh kosong!");
+                    return false;
+                }
+                
+                return confirm("Apakah data yang diinput sudah benar?");
+            }
+        </script>
+        ';
+    } else {
+        // Tampilan List
+        $sql_kurikulum = "SELECT k.kurId, k.kurNama, k.kurTahun, k.kurIsAktif, p.prodiNama 
+                          FROM kurikulum k JOIN program_studi p ON k.kurProdiId = p.prodiId 
+                          ORDER BY k.kurTahun DESC, p.prodiNama ASC";
+        $result_kurikulum = $conn->query($sql_kurikulum);
+        
+        if ($result_kurikulum && $result_kurikulum->num_rows > 0) {
+            $no = 1;
+            $table_data = '';
+            while($row = $result_kurikulum->fetch_assoc()) {
+                $status = ($row['kurIsAktif'] == 1) ? 'Aktif' : 'Non-Aktif';
+                $table_data .= '
+                    <tr>
+                        <td>' . $no++ . '.</td>
+                        <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['kurNama']) . '</td>
+                        <td style="text-align: left;">' . htmlspecialchars($row['prodiNama']) . '</td>
+                        <td>' . htmlspecialchars($row['kurTahun']) . '</td>
+                        <td>' . $status . '</td>
+                        <td>
+                            <a href="?modul=datamaster&submenu=kurikulum&action=edit&id=' . $row['kurId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
+                            <a href="?modul=datamaster&submenu=kurikulum&action=delete&id=' . $row['kurId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['kurNama'] . '?\')">Hapus</a>
+                        </td>
+                    </tr>';
+            }
+        } else {
+            $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Kurikulum.**</td></tr>';
+        }
+        
+        $content_html = ' 
+            <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
+            ' . $add_button_datamaster . '
+            <table class="data-kelas-table"> 
+                ' . $table_header . ' 
+                <tbody> 
+                    ' . $table_data . ' 
+                </tbody> 
+            </table>';
+    }
+}
+
+
+
+
+
+
+
+        
+        else if ($submenu == 'matkul') {
+    // --- 4. MATAKULIAH (Memakai filter form - Prodi Wajib) --- 
+    $table_header = '<thead><tr class="header-table-datamaster-matkul"><th>No.</th><th>Kode MK</th><th>Nama Matakuliah</th><th>SKS</th><th>Semester</th><th>Kurikulum (Prodi)</th><th>Aksi</th></tr></thead>';
+    
+    // Cek jika action adalah 'add' (Form Tambah)
+    if ($action == 'add') {
+        $action_text = 'Tambah';
+        
+        // Get nilai dari URL untuk retensi jika ada error
+        $mk_kode = isset($_GET['mk_kode']) ? htmlspecialchars($_GET['mk_kode']) : '';
+        $mk_nama = isset($_GET['mk_nama']) ? htmlspecialchars($_GET['mk_nama']) : '';
+        $mk_nama_asing = isset($_GET['mk_nama_asing']) ? htmlspecialchars($_GET['mk_nama_asing']) : '';
+        
+        // Ambil data Kurikulum untuk dropdown (dengan info Prodi)
+        $kurikulum_options = '';
+        $sql_kurikulum_list = "SELECT k.kurId, k.kurNama, k.kurTahun, p.prodiNama, p.prodiJenjang 
+                               FROM kurikulum k 
+                               JOIN program_studi p ON k.kurProdiId = p.prodiId 
+                               WHERE k.kurIsAktif = 1 
+                               ORDER BY p.prodiNama ASC, k.kurTahun DESC";
+        $result_kurikulum_list = $conn->query($sql_kurikulum_list);
+        if ($result_kurikulum_list && $result_kurikulum_list->num_rows > 0) {
+            while($row = $result_kurikulum_list->fetch_assoc()) {
+                $kur_display = htmlspecialchars($row['kurNama'] . ' - ' . $row['prodiJenjang'] . ' ' . $row['prodiNama'] . ' (' . $row['kurTahun'] . ')');
+                $kurikulum_options .= '<option value="' . $row['kurId'] . '">' . $kur_display . '</option>';
+            }
+        }
+        
+        $content_html = '
+        <style>
+            .form-matkul-container {
+                max-width: 700px;
+                margin: 30px auto;
+            }
+            .form-matkul {
+                background-color: #f9f9f9;
+                padding: 30px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .form-matkul h3 {
+                text-align: center;
+                color: var(--color-dark-blue);
+                border-bottom: 2px solid var(--color-header-orange);
+                padding-bottom: 10px;
+                margin-top: 0;
+                margin-bottom: 25px;
+            }
+            .form-row-matkul {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            .form-group-full-matkul {
+                grid-column: 1 / -1;
+            }
+            .form-group-matkul {
+                margin-bottom: 15px;
+            }
+            .form-group-matkul label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: #555;
+            }
+            .form-group-matkul input, 
+            .form-group-matkul select,
+            .form-group-matkul textarea {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                font-size: 1em;
+            }
+            .form-group-matkul textarea {
+                resize: vertical;
+                min-height: 60px;
+            }
+            .form-group-matkul input:focus, 
+            .form-group-matkul select:focus,
+            .form-group-matkul textarea:focus {
+                outline: none;
+                border-color: var(--color-accent-blue);
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            }
+            .required {
+                color: red;
+            }
+            .checkbox-group-matkul {
+                display: flex;
+                align-items: center;
+                margin-top: 15px;
+            }
+            .checkbox-group-matkul input[type="checkbox"] {
+                width: auto;
+                margin-right: 10px;
+            }
+            .info-text-matkul {
+                font-size: 0.85em;
+                color: #666;
+                margin-top: 5px;
+            }
+            .info-box-matkul {
+                background-color: #e7f3ff;
+                border-left: 4px solid #2196F3;
+                padding: 12px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+            }
+            .info-box-matkul ul {
+                margin: 5px 0 0 20px;
+                padding: 0;
+            }
+        </style>
+        
+        <h2 class="submenu-data-title">Tambah Data Matakuliah</h2>
+        
+        <div class="form-matkul-container">
+            <form class="form-matkul" method="POST" action="" onsubmit="return validateFormMatakuliah()">
+                <input type="hidden" name="form_action" value="add_matakuliah">
+                <h3>Formulir Data Matakuliah</h3>
+                
+                <div class="info-box-matkul">
+                    <strong>📌 Petunjuk Pengisian:</strong>
+                    <ul>
+                        <li>Kode MK: Minimal 3 karakter (contoh: TCE4106)</li>
+                        <li>SKS: Jumlah Satuan Kredit Semester (1-6 SKS)</li>
+                        <li>Semester: Semester dimana MK diajarkan (1-8)</li>
+                    </ul>
+                </div>
+                
+                <div class="form-group-matkul form-group-full-matkul">
+                    <label for="mk_kur_id">Kurikulum <span class="required">*</span></label>
+                    <select id="mk_kur_id" name="mk_kur_id" required>
+                        <option value="">-- Pilih Kurikulum --</option>
+                        ' . $kurikulum_options . '
+                    </select>
+                    <div class="info-text-matkul">Pilih kurikulum untuk matakuliah ini</div>
+                </div>
+                
+                <div class="form-row-matkul">
+                    <div class="form-group-matkul">
+                        <label for="mk_kode">Kode Matakuliah <span class="required">*</span></label>
+                        <input type="text" id="mk_kode" name="mk_kode" 
+                               value="' . $mk_kode . '" 
+                               required 
+                               placeholder="Contoh: TCE4106"
+                               minlength="3"
+                               maxlength="20">
+                        <div class="info-text-matkul">Min. 3 karakter</div>
+                    </div>
+                    
+                    <div class="form-group-matkul">
+                        <label for="mk_semester">Semester <span class="required">*</span></label>
+                        <select id="mk_semester" name="mk_semester" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group-matkul form-group-full-matkul">
+                    <label for="mk_nama">Nama Matakuliah <span class="required">*</span></label>
+                    <input type="text" id="mk_nama" name="mk_nama" 
+                           value="' . $mk_nama . '" 
+                           required 
+                           placeholder="Contoh: Bahasa Inggris 2"
+                           maxlength="100">
+                </div>
+                
+                <div class="form-group-matkul form-group-full-matkul">
+                    <label for="mk_nama_asing">Nama Asing (English)</label>
+                    <input type="text" id="mk_nama_asing" name="mk_nama_asing" 
+                           value="' . $mk_nama_asing . '" 
+                           placeholder="Contoh: English 2"
+                           maxlength="100">
+                    <div class="info-text-matkul">Opsional - Nama matakuliah dalam bahasa Inggris</div>
+                </div>
+                
+                <div class="form-row-matkul">
+                    <div class="form-group-matkul">
+                        <label for="mk_sks">Jumlah SKS <span class="required">*</span></label>
+                        <select id="mk_sks" name="mk_sks" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="1">1 SKS</option>
+                            <option value="2">2 SKS</option>
+                            <option value="3">3 SKS</option>
+                            <option value="4">4 SKS</option>
+                            <option value="5">5 SKS</option>
+                            <option value="6">6 SKS</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-matkul">
+                        <div class="checkbox-group-matkul" style="margin-top: 30px;">
+                            <input type="checkbox" id="mk_is_aktif" name="mk_is_aktif" value="1" checked>
+                            <label for="mk_is_aktif" style="margin: 0; font-weight: normal;">
+                                Status Aktif
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-save">💾 Simpan Data Matakuliah</button>
+            </form>
+        </div>
+        
+        <a href="?modul=datamaster&submenu=matkul" class="back-link">← Kembali ke Daftar Data</a>
+        
+        <script>
+            function validateFormMatakuliah() {
+                var kurikulum = document.getElementById("mk_kur_id").value;
+                var kode = document.getElementById("mk_kode").value;
+                var nama = document.getElementById("mk_nama").value;
+                var semester = document.getElementById("mk_semester").value;
+                var sks = document.getElementById("mk_sks").value;
+                
+                // Validasi Kurikulum
+                if (kurikulum === "") {
+                    alert("❌ Kurikulum harus dipilih!");
+                    return false;
+                }
+                
+                // Validasi Kode
+                if (kode.trim().length < 3) {
+                    alert("❌ Kode Matakuliah minimal 3 karakter!");
+                    return false;
+                }
+                
+                // Validasi Nama
+                if (nama.trim() === "") {
+                    alert("❌ Nama Matakuliah tidak boleh kosong!");
+                    return false;
+                }
+                
+                // Validasi Semester
+                if (semester === "") {
+                    alert("❌ Semester harus dipilih!");
+                    return false;
+                }
+                
+                // Validasi SKS
+                if (sks === "") {
+                    alert("❌ Jumlah SKS harus dipilih!");
+                    return false;
+                }
+                
+                return confirm("Apakah data yang diinput sudah benar?\\n\\nKode: " + kode + "\\nNama: " + nama + "\\nSKS: " + sks + " SKS\\nSemester: " + semester);
+            }
+        </script>
+        ';
+    } else {
+        // Tampilan List dengan Filter
+        $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
+        
+        $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
+        
+        if ($is_filtered_search) {
+            if (!empty($filter_prodi)) {
+                $where_clause = " WHERE p.prodiId = '$filter_prodi' ";
+                $sql_matkul = "SELECT mk.mkId, mk.mkKode, mk.mkNama, mk.mkSks, mk.mkSemester, k.kurNama, p.prodiNama 
+                              FROM matakuliah mk 
+                              JOIN kurikulum k ON mk.mkKurId = k.kurId 
+                              JOIN program_studi p ON k.kurProdiId = p.prodiId " . $where_clause . " 
+                              ORDER BY mk.mkSemester ASC, mk.mkKode ASC";
+                $result_matkul = $conn->query($sql_matkul);
+                
+                if ($result_matkul && $result_matkul->num_rows > 0) {
+                     $no = 1;
+                     $table_data = '';
+                     while($row = $result_matkul->fetch_assoc()) {
+                         $kurikulum_info = htmlspecialchars($row['kurNama']) . ' (' . htmlspecialchars($row['prodiNama']) . ')';
+                         $table_data .= '
+                             <tr>
+                                 <td>' . $no++ . '.</td>
+                                 <td>' . htmlspecialchars($row['mkKode']) . '</td>
+                                 <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['mkNama']) . '</td>
+                                 <td>' . htmlspecialchars($row['mkSks']) . '</td>
+                                 <td>' . htmlspecialchars($row['mkSemester']) . '</td>
+                                 <td style="text-align: left;">' . $kurikulum_info . '</td>
+                                 <td>
+                                     <a href="?modul=datamaster&submenu=matkul&action=edit&id=' . $row['mkId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
+                                     <a href="?modul=datamaster&submenu=matkul&action=delete&id=' . $row['mkId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['mkNama'] . '?\')">Hapus</a>
+                                 </td>
+                             </tr>';
+                     }
+                } else {
+                     $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Tidak ditemukan data Matakuliah untuk Program Studi yang dipilih.**</td></tr>';
                 }
             } else {
-                $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Kurikulum.**</td></tr>';
+                 $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
             }
-            
-             $content_html = ' 
-                 <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
-                 ' . $add_button_datamaster . '
-                 <table class="data-kelas-table"> 
-                     ' . $table_header . ' 
-                     <tbody> 
-                         ' . $table_data . ' 
-                     </tbody> 
-                 </table>';
-                 
-        } else if ($submenu == 'matkul') {
-             // --- 4. MATAKULIAH (Memakai filter form - Prodi Wajib) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-matkul"><th>No.</th><th>Kode MK</th><th>Nama Matakuliah</th><th>SKS</th><th>Semester</th><th>Kurikulum (Prodi)</th><th>Aksi</th></tr></thead>';
-            $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
-            
-            $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
-            
-            if ($is_filtered_search) {
-                if (!empty($filter_prodi)) {
-                    $where_clause = " WHERE p.prodiId = '$filter_prodi' ";
-                    $sql_matkul = "SELECT mk.mkId, mk.mkKode, mk.mkNama, mk.mkSks, mk.mkSemester, k.kurNama, p.prodiNama 
-                                  FROM matakuliah mk JOIN kurikulum k ON mk.mkKurId = k.kurId JOIN program_studi p ON k.kurProdiId = p.prodiId " . $where_clause . " ORDER BY mk.mkSemester ASC, mk.mkKode ASC";
-                    $result_matkul = $conn->query($sql_matkul);
-                    
-                    if ($result_matkul && $result_matkul->num_rows > 0) {
-                         $no = 1;
-                         $table_data = '';
-                         while($row = $result_matkul->fetch_assoc()) {
-                             $kurikulum_info = htmlspecialchars($row['kurNama']) . ' (' . htmlspecialchars($row['prodiNama']) . ')';
-                             $table_data .= '
-                                 <tr>
-                                     <td>' . $no++ . '.</td>
-                                     <td>' . htmlspecialchars($row['mkKode']) . '</td>
-                                     <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['mkNama']) . '</td>
-                                     <td>' . htmlspecialchars($row['mkSks']) . '</td>
-                                     <td>' . htmlspecialchars($row['mkSemester']) . '</td>
-                                     <td style="text-align: left;">' . $kurikulum_info . '</td>
-                                     <td>
-                                         <a href="?modul=datamaster&submenu=matkul&action=edit&id=' . $row['mkId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
-                                         <a href="?modul=datamaster&submenu=matkul&action=delete&id=' . $row['mkId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['mkNama'] . '?\')">Hapus</a>
-                                     </td>
-                                 </tr>';
-                         }
-                    } else {
-                         $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Tidak ditemukan data Matakuliah untuk Program Studi yang dipilih.**</td></tr>';
-                    }
-                } else {
-                     $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
-                }
-            }
-             $content_html = ' 
-                 <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
-                 ' . $pencarian_form . ' 
-                 <div class="data-actions">' . $add_button_datamaster . '</div> 
-                 <table class="data-kelas-table"> 
-                     ' . $table_header . ' 
-                     <tbody> 
-                         ' . $table_data . ' 
-                     </tbody> 
-                 </table>';
+        }
         
-        } else if ($submenu == 'dosen') {
+        $content_html = ' 
+            <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
+            ' . $pencarian_form . ' 
+            <div class="data-actions">' . $add_button_datamaster . '</div> 
+            <table class="data-kelas-table"> 
+                ' . $table_header . ' 
+                <tbody> 
+                    ' . $table_data . ' 
+                </tbody> 
+            </table>';
+    }
+} 
+        
+    
+        else if ($submenu == 'dosen') {
     // --- 5. DOSEN (Memakai filter form - Prodi Wajib) --- 
     $table_header = '<thead><tr class="header-table-datamaster-dosen"><th>No.</th><th>NIDN</th><th>Nama Dosen</th><th>Jenis Kelamin</th><th>Program Studi</th><th>Aksi</th></tr></thead>';
     $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
@@ -1718,6 +2269,12 @@ if ($modul == 'beranda') {
              </table>';
     }
 }
+
+
+
+
+
+
 		
     } else {
         // Submenu default Data Master
