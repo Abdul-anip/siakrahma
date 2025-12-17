@@ -153,6 +153,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['form_action'])) {
             exit();
         }
     }
+
+    
+    // --- Proses Ubah Jurusan ---
+    if ($_POST['form_action'] == 'edit_jurusan') {
+        $jur_id = $conn->real_escape_string($_POST['jur_id']);
+        $jur_kode = $conn->real_escape_string($_POST['jur_kode']);
+        $jur_nama = $conn->real_escape_string($_POST['jur_nama']);
+        $jur_nama_asing = $conn->real_escape_string($_POST['jur_nama_asing']);
+        $jur_is_aktif = isset($_POST['jur_is_aktif']) ? 1 : 0;
+
+        $update_sql = "UPDATE jurusan SET 
+            jurKode = '$jur_kode', 
+            jurNama = '$jur_nama', 
+            jurNamaAsing = '$jur_nama_asing', 
+            jurIsAktif = $jur_is_aktif 
+            WHERE jurId = '$jur_id'";
+
+        if ($conn->query($update_sql) === TRUE) {
+            header("Location: ?modul=datamaster&submenu=jurusan&status=success&msg=" . urlencode("Data Jurusan $jur_nama berhasil diperbarui!"));
+            exit();
+        } else {
+            header("Location: ?modul=datamaster&submenu=jurusan&action=edit&id=$jur_id&status=error&msg=" . urlencode("Gagal memperbarui data: " . $conn->error));
+            exit();
+        }
+    }
+
     // --- Proses Tambah Kelas ---
     if ($_POST['form_action'] == 'add_kelas') {
         $kls_nama = $conn->real_escape_string($_POST['kls_nama']);
@@ -204,6 +230,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['form_action'])) {
     }
 }
 
+
+// --- Proses Ubah Program Studi ---
+if ($_POST['form_action'] == 'edit_prodi') {
+    $prodi_id = $conn->real_escape_string($_POST['prodi_id']);
+    $prodi_jur_id = $conn->real_escape_string($_POST['prodi_jur_id']);
+    $prodi_kode = $conn->real_escape_string($_POST['prodi_kode']);
+    $prodi_nama = $conn->real_escape_string($_POST['prodi_nama']);
+    $prodi_nama_asing = $conn->real_escape_string($_POST['prodi_nama_asing']);
+    $prodi_jenjang = $conn->real_escape_string($_POST['prodi_jenjang']);
+    $prodi_email = $conn->real_escape_string($_POST['prodi_email']);
+    $prodi_website = $conn->real_escape_string($_POST['prodi_website']);
+    $prodi_is_aktif = isset($_POST['prodi_is_aktif']) ? 1 : 0;
+
+    $update_sql = "UPDATE program_studi SET 
+        prodiJurId = '$prodi_jur_id', 
+        prodiKode = '$prodi_kode', 
+        prodiNama = '$prodi_nama', 
+        prodiNamaAsing = '$prodi_nama_asing', 
+        prodiJenjang = '$prodi_jenjang', 
+        prodiEmail = '$prodi_email', 
+        prodiWebsite = '$prodi_website', 
+        prodiIsAktif = $prodi_is_aktif 
+        WHERE prodiId = '$prodi_id'";
+
+    if ($conn->query($update_sql) === TRUE) {
+        header("Location: ?modul=datamaster&submenu=prodi&status=success&msg=" . urlencode("Data Prodi $prodi_nama berhasil diperbarui!"));
+        exit();
+    } else {
+        header("Location: ?modul=datamaster&submenu=prodi&action=edit&id=$prodi_id&status=error&msg=" . urlencode("Gagal memperbarui data: " . $conn->error));
+        exit();
+    }
+}
+
+
 // --- Proses Tambah Mahasiswa ---
 if ($_POST['form_action'] == 'add_mahasiswa') {
     $mhs_nim = $conn->real_escape_string($_POST['mhs_nim']);
@@ -241,6 +301,16 @@ if ($_POST['form_action'] == 'add_mahasiswa') {
         exit();
     }
 }
+
+if ($_POST['form_action'] == 'edit_mahasiswa') {
+        $nim = $conn->real_escape_string($_POST['mhs_nim']);
+        $nama = $conn->real_escape_string($_POST['mhs_nama']);
+        $prodi = $conn->real_escape_string($_POST['mhs_prodi_id']);
+        $sql = "UPDATE mahasiswa SET mhsNama='$nama', mhsProdiId=$prodi WHERE mhsNim='$nim'";
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ?modul=datamaster&submenu=mahasiswa&status=success&msg=" . urlencode("Data Mahasiswa berhasil diperbarui!")); exit();
+        }
+    }
 
 
 // --- Proses Tambah Kurikulum ---
@@ -287,6 +357,20 @@ if ($_POST['form_action'] == 'add_kurikulum') {
         exit();
     }
 }
+
+if ($_POST['form_action'] == 'edit_kurikulum') {
+        $id = $conn->real_escape_string($_POST['kur_id']);
+        $prodi_id = $conn->real_escape_string($_POST['kur_prodi_id']);
+        $tahun = $conn->real_escape_string($_POST['kur_tahun']);
+        $nama = $conn->real_escape_string($_POST['kur_nama']);
+        $is_aktif = isset($_POST['kur_is_aktif']) ? 1 : 0;
+        $sql = "UPDATE kurikulum SET kurProdiId=$prodi_id, kurTahun='$tahun', kurNama='$nama', kurIsAktif=$is_aktif WHERE kurId=$id";
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ?modul=datamaster&submenu=kurikulum&status=success&msg=" . urlencode("Data Kurikulum berhasil diperbarui!")); exit();
+        }
+    } else {
+        header("Location: ?modul=datamaster&submenu=kurikulum&action=edit&id=$id&status=error&msg=" . urlencode("Gagal memperbarui data: " . $conn->error)); exit();
+    }
 
 
 // --- Proses Tambah Matakuliah ---
@@ -355,6 +439,20 @@ if ($_POST['form_action'] == 'add_matakuliah') {
     }
 }
 
+if ($_POST['form_action'] == 'edit_matakuliah') {
+        $id = $conn->real_escape_string($_POST['mk_id']);
+        $kur_id = $conn->real_escape_string($_POST['mk_kur_id']);
+        $kode = $conn->real_escape_string($_POST['mk_kode']);
+        $nama = $conn->real_escape_string($_POST['mk_nama']);
+        $smt = $conn->real_escape_string($_POST['mk_semester']);
+        $sks = $conn->real_escape_string($_POST['mk_sks']);
+        $is_aktif = isset($_POST['mk_is_aktif']) ? 1 : 0;
+        $sql = "UPDATE matakuliah SET mkKurId=$kur_id, mkKode='$kode', mkNama='$nama', mkSemester=$smt, mkSks=$sks, mkIsAktif=$is_aktif WHERE mkId=$id";
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ?modul=datamaster&submenu=matkul&status=success&msg=" . urlencode("Data Matakuliah berhasil diperbarui!")); exit();
+        }
+    }
+
 
 
     // --- Proses Ubah Password ---
@@ -411,6 +509,32 @@ if ($_POST['form_action'] == 'add_matakuliah') {
     }
 
 
+    // ===================== LOGIKA PENGHAPUSAN (DELETE) =====================
+if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
+    $id = $conn->real_escape_string($_GET['id']);
+    $mod = $_GET['modul'];
+    $sub = $_GET['submenu'];
+    $table = ""; $pk = "";
+    
+    if ($sub == 'jurusan') { $table = "jurusan"; $pk = "jurId"; }
+    elseif ($sub == 'prodi') { $table = "program_studi"; $pk = "prodiId"; }
+    elseif ($sub == 'kelas') { $table = "kelas"; $pk = "klsId"; }
+    elseif ($sub == 'kurikulum') { $table = "kurikulum"; $pk = "kurId"; }
+    elseif ($sub == 'matkul') { $table = "matakuliah"; $pk = "mkId"; }
+    elseif ($sub == 'dosen') { $table = "dosen"; $pk = "dsnNidn"; $id = "'$id'"; }
+    elseif ($sub == 'mahasiswa') { $table = "mahasiswa"; $pk = "mhsNim"; $id = "'$id'"; }
+
+    if ($table != "") {
+        $conn->query("SET FOREIGN_KEY_CHECKS = 0;");
+        $sql = "DELETE FROM $table WHERE $pk = $id";
+        if ($conn->query($sql)) {
+            $conn->query("SET FOREIGN_KEY_CHECKS = 1;");
+            header("Location: ?modul=$mod&submenu=$sub&status=success&msg=" . urlencode("Data berhasil dihapus!")); exit();
+        }
+    }
+}
+
+
     // --- Proses Tambah Dosen ---
     if ($_POST['form_action'] == 'add_dosen') {
         $dsn_nidn = $conn->real_escape_string($_POST['dsn_nidn']);
@@ -450,6 +574,18 @@ if ($_POST['form_action'] == 'add_matakuliah') {
             }
             header("Location: ?modul=datamaster&submenu=dosen&action=add&status=error&msg=" . urlencode($error_msg) . "&dsn_nidn=$dsn_nidn&dsn_nama=$dsn_nama");
             exit();
+        }
+    }
+
+    if ($_POST['form_action'] == 'edit_dosen') {
+        $nidn = $conn->real_escape_string($_POST['dsn_nidn']);
+        $nama = $conn->real_escape_string($_POST['dsn_nama']);
+        $jk = $conn->real_escape_string($_POST['dsn_jenis_kelamin']);
+        $prodi = $conn->real_escape_string($_POST['dsn_prodi_id']);
+        $jur = $conn->real_escape_string($_POST['dsn_jur_id']);
+        $sql = "UPDATE dosen SET dsnNama='$nama', dsnJenisKelaminKode='$jk', dsnProdiId=$prodi, dsnJurId=$jur WHERE dsnNidn='$nidn'";
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ?modul=datamaster&submenu=dosen&status=success&msg=" . urlencode("Data Dosen berhasil diperbarui!")); exit();
         }
     }
 
@@ -1198,7 +1334,7 @@ if ($modul == 'beranda') {
                          </tbody> 
                      </table>';
             }
-        } else if ($submenu == 'prodi') {
+} else if ($submenu == 'prodi') {
     // --- 2. PROGRAM STUDI (Tidak pakai filter form) --- 
     $table_header = '<thead><tr class="header-table-datamaster-prodi"><th>No.</th><th>Kode Prodi</th><th>Nama Program Studi</th><th>Jurusan</th><th>Jenjang</th><th>Aksi</th></tr></thead>';
     
@@ -1252,7 +1388,54 @@ if ($modul == 'beranda') {
                 </form>
             </div>
             <a href="?modul=datamaster&submenu=' . $submenu . '" class="back-link">← Kembali ke Daftar Data</a>';
-    } else {
+    } 
+    
+    else if ($action == 'edit' && isset($_GET['id'])) {
+        $id_edit = $conn->real_escape_string($_GET['id']);
+        $sql_get_data = "SELECT * FROM program_studi WHERE prodiId = '$id_edit'";
+        $res_data = $conn->query($sql_get_data);
+        $data = $res_data->fetch_assoc();
+
+        if (!$data) {
+            echo "Data tidak ditemukan!";
+        } else {
+            $content_html = '
+            <div class="centered-form">
+                <form class="crud-form" method="POST" action=""> 
+                    <input type="hidden" name="form_action" value="edit_prodi">
+                    <input type="hidden" name="prodi_id" value="'.$data['prodiId'].'">
+                    <h3 style="text-align: center;">Formulir Ubah Data Program Studi</h3>
+                    
+                    <label for="prodi_jur_id">Jurusan:</label>
+                    <select id="prodi_jur_id" name="prodi_jur_id" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        ' . str_replace('value="'.$data['prodiJurId'].'"', 'value="'.$data['prodiJurId'].'" selected', $jurusan_options) . '
+                    </select><br>
+                    
+                    <label for="prodi_kode">Kode Program Studi:</label>
+                    <input type="text" id="prodi_kode" name="prodi_kode" value="'.$data['prodiKode'].'" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_nama">Nama Program Studi:</label>
+                    <input type="text" id="prodi_nama" name="prodi_nama" value="'.$data['prodiNama'].'" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_jenjang">Jenjang:</label>
+                    <select id="prodi_jenjang" name="prodi_jenjang" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="D-3" '.($data['prodiJenjang'] == 'D-3' ? 'selected' : '').'>D-3 (Diploma Tiga)</option>
+                        <option value="D-4" '.($data['prodiJenjang'] == 'D-4' ? 'selected' : '').'>D-4 (Diploma Empat)</option>
+                    </select><br>
+
+                    <label style="margin-top: 20px;">
+                       <input type="checkbox" name="prodi_is_aktif" value="1" '.($data['prodiIsAktif'] == 1 ? 'checked' : '').'> Status Aktif
+                    </label><br>
+                    
+                    <button type="submit" class="btn-save">Simpan Perubahan</button>
+                </form>
+            </div>
+            <a href="?modul=datamaster&submenu=prodi" class="back-link">← Kembali ke Daftar Data</a>';
+        }
+    }
+    
+    
+    else {
         // Tampilan List
         $sql_prodi = "SELECT p.prodiId, p.prodiKode, p.prodiNama, p.prodiJenjang, j.jurNama 
                       FROM program_studi p JOIN jurusan j ON p.prodiJurId = j.jurId ORDER BY j.jurNama, p.prodiNama ASC";
@@ -1451,7 +1634,11 @@ if ($modul == 'beranda') {
             }
         </script>
         ';
-    } else {
+    } 
+    
+    
+    
+    else {
         // Tampilan List
         $sql_kurikulum = "SELECT k.kurId, k.kurNama, k.kurTahun, k.kurIsAktif, p.prodiNama 
                           FROM kurikulum k JOIN program_studi p ON k.kurProdiId = p.prodiId 
@@ -2095,7 +2282,7 @@ if ($modul == 'beranda') {
     // --- 6. MAHASISWA (Memakai filter form - Prodi Wajib) --- 
     $table_header = '<thead><tr class="header-table-datamaster-mahasiswa"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Program Studi</th><th>Dosen PA</th><th>Status Akademik</th><th>Aksi</th></tr></thead>';
     
-    // Cek jika action adalah 'add' (Form Tambah)
+    // Cek jika action adalah 'add' (Form Tambah) 
     if ($action == 'add') {
         $action_text = 'Tambah';
         
@@ -3094,7 +3281,7 @@ if ($submenu && isset(${$modul . '_menu_items'}[$submenu])) {
                     <?= $user_menu_html ?>
                 </ul>
             </div>
-            <?php endif; ?>
+            <?php endif; ?> 
             
             <div id="content-right">
                 
