@@ -175,6 +175,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['form_action'])) {
         }
     }
 
+    //tambah prodi//
+    if ($_POST['form_action'] == 'add_prodi') {
+    $prodi_jur_id = $conn->real_escape_string($_POST['prodi_jur_id']);
+    $prodi_kode = $conn->real_escape_string($_POST['prodi_kode']);
+    $prodi_nama = $conn->real_escape_string($_POST['prodi_nama']);
+    $prodi_nama_asing = $conn->real_escape_string($_POST['prodi_nama_asing']);
+    $prodi_jenjang = $conn->real_escape_string($_POST['prodi_jenjang']);
+    $prodi_email = $conn->real_escape_string($_POST['prodi_email']);
+    $prodi_website = $conn->real_escape_string($_POST['prodi_website']);
+    $prodi_is_aktif = isset($_POST['prodi_is_aktif']) ? 1 : 0;
+    
+    $insert_sql = "INSERT INTO program_studi (prodiJurId, prodiKode, prodiNama, prodiNamaAsing, prodiJenjang, prodiEmail, prodiWebsite, prodiIsAktif)
+        VALUES ('$prodi_jur_id', '$prodi_kode', '$prodi_nama', '$prodi_nama_asing', '$prodi_jenjang', '$prodi_email', '$prodi_website', $prodi_is_aktif)";
+    
+    if ($conn->query($insert_sql) === TRUE) {
+        $message = "   ✅    Data Program Studi $prodi_nama berhasil ditambahkan!";
+        header("Location: ?modul=datamaster&submenu=prodi&status=success&msg=" . urlencode($message));
+        exit();
+    } else {
+        if ($conn->errno == 1062) {
+            $error_msg = "Kode Program Studi $prodi_kode sudah ada. Gagal menambahkan data.";
+        } else {
+            $error_msg = "   ❌    Gagal menambahkan data Program Studi: " . $conn->error;
+        }
+        header("Location: ?modul=datamaster&submenu=prodi&action=add&status=error&msg=" . urlencode($error_msg) . "&prodi_kode=$prodi_kode&prodi_nama=$prodi_nama");
+        exit();
+    }
+}
+
+// --- Proses Tambah Mahasiswa ---
+if ($_POST['form_action'] == 'add_mahasiswa') {
+    $mhs_nim = $conn->real_escape_string($_POST['mhs_nim']);
+    $mhs_nama = $conn->real_escape_string($_POST['mhs_nama']);
+    $mhs_tempat_lahir = $conn->real_escape_string($_POST['mhs_tempat_lahir']);
+    $mhs_tgl_lahir = $conn->real_escape_string($_POST['mhs_tgl_lahir']);
+    $mhs_jenis_kelamin = $conn->real_escape_string($_POST['mhs_jenis_kelamin']);
+    $mhs_jur_id = $conn->real_escape_string($_POST['mhs_jur_id']);
+    $mhs_prodi_id = $conn->real_escape_string($_POST['mhs_prodi_id']);
+    $mhs_kode_kelas = $conn->real_escape_string($_POST['mhs_kode_kelas']);
+    $mhs_sts_akademik = $conn->real_escape_string($_POST['mhs_sts_akademik']);
+    $mhs_sms_aktif = $conn->real_escape_string($_POST['mhs_sms_aktif']);
+    $mhs_pa_id = !empty($_POST['mhs_pa_id']) ? "'" . $conn->real_escape_string($_POST['mhs_pa_id']) . "'" : "NULL";
+    
+    // Cek apakah NIM sudah ada
+    $check_sql = "SELECT mhsNim FROM mahasiswa WHERE mhsNim = '$mhs_nim'";
+    $check_result = $conn->query($check_sql);
+    
+    if ($check_result && $check_result->num_rows > 0) {
+        $error_msg = "NIM $mhs_nim sudah terdaftar. Silakan gunakan NIM yang berbeda.";
+        header("Location: ?modul=datamaster&submenu=mahasiswa&action=add&status=error&msg=" . urlencode($error_msg) . "&mhs_nim=$mhs_nim&mhs_nama=" . urlencode($mhs_nama));
+        exit();
+    }
+    
+    $insert_sql = "INSERT INTO mahasiswa (mhsNim, mhsNama, mhsTempatLahir, mhsTglLahir, mhsJenisKelamin, mhsJurId, mhsProdiId, mhsKodeKelas, mhsStsAkademik, mhsSmsAktif, mhsFoto, mhsPaId)
+        VALUES ('$mhs_nim', '$mhs_nama', '$mhs_tempat_lahir', '$mhs_tgl_lahir', '$mhs_jenis_kelamin', '$mhs_jur_id', '$mhs_prodi_id', '$mhs_kode_kelas', '$mhs_sts_akademik', '$mhs_sms_aktif', '', $mhs_pa_id)";
+    
+    if ($conn->query($insert_sql) === TRUE) {
+        $message = "   ✅    Data Mahasiswa $mhs_nama (NIM: $mhs_nim) berhasil ditambahkan!";
+        header("Location: ?modul=datamaster&submenu=mahasiswa&status=success&msg=" . urlencode($message));
+        exit();
+    } else {
+        $error_msg = "   ❌    Gagal menambahkan data Mahasiswa: " . $conn->error;
+        header("Location: ?modul=datamaster&submenu=mahasiswa&action=add&status=error&msg=" . urlencode($error_msg) . "&mhs_nim=$mhs_nim&mhs_nama=" . urlencode($mhs_nama));
+        exit();
+    }
+}
+
 
 
     // --- Proses Ubah Password ---
@@ -362,6 +429,30 @@ $content_html = "";
 $active_menu = $modul;
 // --- FUNGSI PENGAMBIL DATA DINAMIS UNTUK DROPDOWN & DEFAULT FILTER ---
 $prodi_options = '';
+
+$jurusan_options = '';
+$sql_jurusan_list = "SELECT jurId, jurKode, jurNama FROM jurusan WHERE jurIsAktif = 1 ORDER BY jurNama ASC";
+$result_jurusan_list = $conn->query($sql_jurusan_list);
+if ($result_jurusan_list && $result_jurusan_list->num_rows > 0) {
+    while($row = $result_jurusan_list->fetch_assoc()) {
+        $jurusan_options .= '<option value="' . $row['jurId'] . '">' . htmlspecialchars($row['jurKode'] . ' - ' . $row['jurNama']) . '</option>';
+    }
+}
+
+$dosen_pa_options = '<option value="">-- Pilih Dosen PA (Opsional) --</option>';
+$sql_dosen_pa = "SELECT d.dsnNidn, d.dsnNama, d.dsnGelarBelakang, p.prodiNama 
+                 FROM dosen d 
+                 LEFT JOIN program_studi p ON d.dsnProdiId = p.prodiId 
+                 ORDER BY d.dsnNama ASC";
+$result_dosen_pa = $conn->query($sql_dosen_pa);
+if ($result_dosen_pa && $result_dosen_pa->num_rows > 0) {
+    while($row = $result_dosen_pa->fetch_assoc()) {
+        $nama_lengkap = $row['dsnNama'] . (empty($row['dsnGelarBelakang']) ? '' : ', ' . $row['dsnGelarBelakang']);
+        $prodi_info = $row['prodiNama'] ? ' (' . $row['prodiNama'] . ')' : '';
+        $dosen_pa_options .= '<option value="' . $row['dsnNidn'] . '">' . htmlspecialchars($nama_lengkap . $prodi_info) . '</option>';
+    }
+}
+
 $sql_prodi_list = "SELECT prodiId, prodiNama, prodiJenjang FROM program_studi ORDER BY prodiNama ASC";
 $result_prodi_list = $conn->query($sql_prodi_list);
 if ($result_prodi_list && $result_prodi_list->num_rows > 0) {
@@ -995,43 +1086,97 @@ if ($modul == 'beranda') {
                      </table>';
             }
         } else if ($submenu == 'prodi') {
-             // --- 2. PROGRAM STUDI (Tidak pakai filter form) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-prodi"><th>No.</th><th>Kode Prodi</th><th>Nama Program Studi</th><th>Jurusan</th><th>Jenjang</th><th>Aksi</th></tr></thead>';
-            $sql_prodi = "SELECT p.prodiId, p.prodiKode, p.prodiNama, p.prodiJenjang, j.jurNama 
-                          FROM program_studi p JOIN jurusan j ON p.prodiJurId = j.jurId ORDER BY j.jurNama, p.prodiNama ASC";
-            $result_prodi = $conn->query($sql_prodi);
-            
-            if ($result_prodi && $result_prodi->num_rows > 0) {
-                $no = 1;
-                $table_data = '';
-                while($row = $result_prodi->fetch_assoc()) {
-                    $table_data .= '
-                        <tr>
-                            <td>' . $no++ . '.</td>
-                            <td>' . htmlspecialchars($row['prodiKode']) . '</td>
-                            <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['prodiNama']) . '</td>
-                            <td style="text-align: left;">' . htmlspecialchars($row['jurNama']) . '</td>
-                            <td>' . htmlspecialchars($row['prodiJenjang']) . '</td>
-                            <td>
-                                <a href="?modul=datamaster&submenu=prodi&action=edit&id=' . $row['prodiId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
-                                <a href="?modul=datamaster&submenu=prodi&action=delete&id=' . $row['prodiId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['prodiNama'] . '?\')">Hapus</a>
-                            </td>
-                        </tr>';
-                }
-            } else {
-                $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Program Studi.**</td></tr>';
+    // --- 2. PROGRAM STUDI (Tidak pakai filter form) --- 
+    $table_header = '<thead><tr class="header-table-datamaster-prodi"><th>No.</th><th>Kode Prodi</th><th>Nama Program Studi</th><th>Jurusan</th><th>Jenjang</th><th>Aksi</th></tr></thead>';
+    
+    // Cek jika action adalah 'add' (Form Tambah)
+    if ($action == 'add') {
+        $action_text = 'Tambah';
+        $content_html = ' 
+            <div class="centered-form">
+                <form class="crud-form" method="POST" action=""> 
+                    <input type="hidden" name="form_action" value="add_prodi">
+                    <h3 style="text-align: center;">Formulir Tambah Data Program Studi</h3>
+                    
+                    <label for="prodi_jur_id">Jurusan: <span style="color: red;">*</span></label>
+                    <select id="prodi_jur_id" name="prodi_jur_id" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="">-- Pilih Jurusan --</option>
+                        ' . $jurusan_options . '
+                    </select><br>
+                    
+                    <label for="prodi_kode">Kode Program Studi: <span style="color: red;">*</span></label>
+                    <input type="text" id="prodi_kode" name="prodi_kode" value="' . (isset($_GET['prodi_kode']) ? htmlspecialchars($_GET['prodi_kode']) : '') . '" required placeholder="Contoh: 4TT" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_nama">Nama Program Studi: <span style="color: red;">*</span></label>
+                    <input type="text" id="prodi_nama" name="prodi_nama" value="' . (isset($_GET['prodi_nama']) ? htmlspecialchars($_GET['prodi_nama']) : '') . '" required placeholder="Contoh: Teknik Telekomunikasi" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_nama_asing">Nama Asing:</label>
+                    <input type="text" id="prodi_nama_asing" name="prodi_nama_asing" placeholder="Contoh: Telecommunication Engineering" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_jenjang">Jenjang: <span style="color: red;">*</span></label>
+                    <select id="prodi_jenjang" name="prodi_jenjang" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="">-- Pilih Jenjang --</option>
+                        <option value="D-3">D-3 (Diploma Tiga)</option>
+                        <option value="D-4">D-4 (Diploma Empat)</option>
+                        <option value="S-1">S-1 (Sarjana)</option>
+                        <option value="S-2">S-2 (Magister)</option>
+                    </select><br>
+                    
+                    <label for="prodi_email">Email Program Studi:</label>
+                    <input type="email" id="prodi_email" name="prodi_email" placeholder="Contoh: tt@polinpdg.ac.id" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label for="prodi_website">Website:</label>
+                    <input type="text" id="prodi_website" name="prodi_website" placeholder="Contoh: http://tt.polinpdg.ac.id" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"><br>
+                    
+                    <label style="margin-top: 20px;">
+                       <input type="checkbox" name="prodi_is_aktif" value="1" checked> 
+                       Status Aktif
+                    </label><br>
+                    
+                    <p style="color: #6c757d; font-size: 0.9em; margin-top: 20px;"><span style="color: red;">*</span> Wajib diisi</p>
+                    
+                    <button type="submit" class="btn-save">Simpan Data Program Studi</button>
+                </form>
+            </div>
+            <a href="?modul=datamaster&submenu=' . $submenu . '" class="back-link">← Kembali ke Daftar Data</a>';
+    } else {
+        // Tampilan List
+        $sql_prodi = "SELECT p.prodiId, p.prodiKode, p.prodiNama, p.prodiJenjang, j.jurNama 
+                      FROM program_studi p JOIN jurusan j ON p.prodiJurId = j.jurId ORDER BY j.jurNama, p.prodiNama ASC";
+        $result_prodi = $conn->query($sql_prodi);
+        
+        if ($result_prodi && $result_prodi->num_rows > 0) {
+            $no = 1;
+            $table_data = '';
+            while($row = $result_prodi->fetch_assoc()) {
+                $table_data .= '
+                    <tr>
+                        <td>' . $no++ . '.</td>
+                        <td>' . htmlspecialchars($row['prodiKode']) . '</td>
+                        <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['prodiNama']) . '</td>
+                        <td style="text-align: left;">' . htmlspecialchars($row['jurNama']) . '</td>
+                        <td>' . htmlspecialchars($row['prodiJenjang']) . '</td>
+                        <td>
+                            <a href="?modul=datamaster&submenu=prodi&action=edit&id=' . $row['prodiId'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
+                            <a href="?modul=datamaster&submenu=prodi&action=delete&id=' . $row['prodiId'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus ' . $row['prodiNama'] . '?\')">Hapus</a>
+                        </td>
+                    </tr>';
             }
-            
-             $content_html = ' 
-                 <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
-                 ' . $add_button_datamaster . '
-                 <table class="data-kelas-table"> 
-                     ' . $table_header . ' 
-                     <tbody> 
-                         ' . $table_data . ' 
-                     </tbody> 
-                 </table>';
-        } else if ($submenu == 'kurikulum') {
+        } else {
+            $table_data = '<tr><td colspan="6" style="text-align: center; padding: 5px;">**Tidak ditemukan data Program Studi.**</td></tr>';
+        }
+        
+        $content_html = ' 
+            <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
+            ' . $add_button_datamaster . '
+            <table class="data-kelas-table"> 
+                ' . $table_header . ' 
+                <tbody> 
+                    ' . $table_data . ' 
+                </tbody> 
+            </table>';
+    }
+} else if ($submenu == 'kurikulum') {
              // --- 3. KURIKULUM (Tidak pakai filter form) --- 
             $table_header = '<thead><tr class="header-table-datamaster-kurikulum"><th>No.</th><th>Nama Kurikulum</th><th>Program Studi</th><th>Tahun</th><th>Status Aktif</th><th>Aksi</th></tr></thead>';
             $sql_kurikulum = "SELECT k.kurId, k.kurNama, k.kurTahun, k.kurIsAktif, p.prodiNama 
@@ -1395,60 +1540,184 @@ if ($modul == 'beranda') {
                  </tbody> 
              </table>';
         } 
-        }else if ($submenu == 'mahasiswa') {
-             // --- 6. MAHASISWA (Memakai filter form - Prodi Wajib) --- 
-            $table_header = '<thead><tr class="header-table-datamaster-mahasiswa"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Program Studi</th></th><th>Status Akademik</th><th>Dosen PA</th><th>Aksi</th></tr></thead>';
-            $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
-            
-            $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
-            
-            if ($is_filtered_search) {
-                if (!empty($filter_prodi)) {
-                    $where_clause = " WHERE m.mhsProdiId = '$filter_prodi' ";
-                    $sql_mahasiswa = "SELECT m.mhsNim, m.mhsNama, m.mhsStsAkademik, p.prodiNama, d.dsnNama AS PaNama
-                                      FROM mahasiswa m 
-                                      JOIN program_studi p ON m.mhsProdiId = p.prodiId 
-                                      LEFT JOIN dosen d ON m.mhsPaId = d.dsnNidn " . $where_clause . " ORDER BY m.mhsNama ASC";
-                    $result_mahasiswa = $conn->query($sql_mahasiswa);
+        } else if ($submenu == 'mahasiswa') {
+    // --- 6. MAHASISWA (Memakai filter form - Prodi Wajib) --- 
+    $table_header = '<thead><tr class="header-table-datamaster-mahasiswa"><th>No.</th><th>NIM</th><th>Nama Mahasiswa</th><th>Program Studi</th><th>Dosen PA</th><th>Status Akademik</th><th>Aksi</th></tr></thead>';
+    
+    // Cek jika action adalah 'add' (Form Tambah)
+    if ($action == 'add') {
+        $action_text = 'Tambah';
+        
+        // Get nilai dari URL untuk retensi jika ada error
+        $mhs_nim = isset($_GET['mhs_nim']) ? htmlspecialchars($_GET['mhs_nim']) : '';
+        $mhs_nama = isset($_GET['mhs_nama']) ? htmlspecialchars($_GET['mhs_nama']) : '';
+        $mhs_tempat_lahir = isset($_GET['mhs_tempat_lahir']) ? htmlspecialchars($_GET['mhs_tempat_lahir']) : '';
+        $mhs_tgl_lahir = isset($_GET['mhs_tgl_lahir']) ? htmlspecialchars($_GET['mhs_tgl_lahir']) : '';
+        
+        $content_html = ' 
+            <div class="centered-form">
+                <form class="crud-form" method="POST" action="" style="max-width: 600px;"> 
+                    <input type="hidden" name="form_action" value="add_mahasiswa">
+                    <h3 style="text-align: center;">Formulir Tambah Data Mahasiswa</h3>
                     
-                    if ($result_mahasiswa && $result_mahasiswa->num_rows > 0) {
-                         $no = 1;
-                         $table_data = '';
-                         $status_akademik_map = ['A' => 'Aktif', 'L' => 'Lulus', 'C' => 'Cuti', 'D' => 'DO', 'K' => 'Keluar', 'M' => 'Meninggal'];
-                         while($row = $result_mahasiswa->fetch_assoc()) {
-                             $pa_nama = htmlspecialchars($row['PaNama'] ?? 'N/A');
-                             $status_akademik = $status_akademik_map[$row['mhsStsAkademik']];
-                             $table_data .= '
-                                 <tr>
-                                     <td>' . $no++ . '.</td>
-                                     <td>' . htmlspecialchars($row['mhsNim']) . '</td>
-                                     <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['mhsNama']) . '</td>
-                                     <td>' . htmlspecialchars($row['prodiNama']) . '</td>
-                                     <td>' . $pa_nama . '</td>
-                                     <td>' . $status_akademik . '</td>
-                                     <td>
-                                         <a href="?modul=datamaster&submenu=mahasiswa&action=edit&id=' . $row['mhsNim'] . '" class="btn-aksi" style="color: blue;">Ubah</a>
-                                     </td>
-                                 </tr>';
-                         }
-                    } else {
-                         $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Tidak ditemukan data Mahasiswa untuk Program Studi yang dipilih.**</td></tr>';
-                    }
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="grid-column: 1 / -1;">
+                            <label for="mhs_nim">NIM: <span style="color: red;">*</span></label>
+                            <input type="text" id="mhs_nim" name="mhs_nim" value="' . $mhs_nim . '" required placeholder="Contoh: 2211071001" pattern="[0-9]{10}" title="NIM harus 10 digit angka" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="grid-column: 1 / -1;">
+                            <label for="mhs_nama">Nama Lengkap: <span style="color: red;">*</span></label>
+                            <input type="text" id="mhs_nama" name="mhs_nama" value="' . $mhs_nama . '" required placeholder="Contoh: Ahmad Rizki" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_tempat_lahir">Tempat Lahir: <span style="color: red;">*</span></label>
+                            <input type="text" id="mhs_tempat_lahir" name="mhs_tempat_lahir" value="' . $mhs_tempat_lahir . '" required placeholder="Contoh: Padang" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_tgl_lahir">Tanggal Lahir: <span style="color: red;">*</span></label>
+                            <input type="date" id="mhs_tgl_lahir" name="mhs_tgl_lahir" value="' . $mhs_tgl_lahir . '" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_jenis_kelamin">Jenis Kelamin: <span style="color: red;">*</span></label>
+                            <select id="mhs_jenis_kelamin" name="mhs_jenis_kelamin" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih --</option>
+                                <option value="L">Laki-laki</option>
+                                <option value="P">Perempuan</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_kode_kelas">Kode Kelas: <span style="color: red;">*</span></label>
+                            <select id="mhs_kode_kelas" name="mhs_kode_kelas" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih --</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                            </select>
+                        </div>
+                        
+                        <div style="grid-column: 1 / -1;">
+                            <label for="mhs_jur_id">Jurusan: <span style="color: red;">*</span></label>
+                            <select id="mhs_jur_id" name="mhs_jur_id" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih Jurusan --</option>
+                                ' . $jurusan_options . '
+                            </select>
+                        </div>
+                        
+                        <div style="grid-column: 1 / -1;">
+                            <label for="mhs_prodi_id">Program Studi: <span style="color: red;">*</span></label>
+                            <select id="mhs_prodi_id" name="mhs_prodi_id" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih Program Studi --</option>
+                                ' . $prodi_options . '
+                            </select>
+                        </div>
+                        
+                        <div style="grid-column: 1 / -1;">
+                            <label for="mhs_pa_id">Dosen Pembimbing Akademik:</label>
+                            <select id="mhs_pa_id" name="mhs_pa_id" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                ' . $dosen_pa_options . '
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_sts_akademik">Status Akademik: <span style="color: red;">*</span></label>
+                            <select id="mhs_sts_akademik" name="mhs_sts_akademik" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih Status --</option>
+                                <option value="A" selected>Aktif</option>
+                                <option value="C">Cuti</option>
+                                <option value="L">Lulus</option>
+                                <option value="D">DO (Drop Out)</option>
+                                <option value="K">Keluar</option>
+                                <option value="M">Meninggal</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="mhs_sms_aktif">Semester Aktif: <span style="color: red;">*</span></label>
+                            <select id="mhs_sms_aktif" name="mhs_sms_aktif" required style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                <option value="">-- Pilih --</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <p style="color: #6c757d; font-size: 0.9em; margin-top: 20px;">
+                        <span style="color: red;">*</span> Wajib diisi<br>
+                        <small>Foto mahasiswa dapat diupload setelah data tersimpan melalui menu Ubah.</small>
+                    </p>
+                    
+                    <button type="submit" class="btn-save">Simpan Data Mahasiswa</button>
+                </form>
+            </div>
+            <a href="?modul=datamaster&submenu=' . $submenu . '" class="back-link">← Kembali ke Daftar Data</a>';
+    } else {
+        // Tampilan List dengan Filter
+        $pencarian_form = generate_pencarian_form($conn, $prodi_options, $thn_akd_options, $smt_options_html, false);
+        
+        $table_data = '<tr><td colspan="7" style="text-align: center; padding: 20px;"></td></tr>';
+        
+        if ($is_filtered_search) {
+            if (!empty($filter_prodi)) {
+                $where_clause = " WHERE m.mhsProdiId = '$filter_prodi' ";
+                $sql_mahasiswa = "SELECT m.mhsNim, m.mhsNama, m.mhsStsAkademik, p.prodiNama, d.dsnNama AS PaNama
+                                  FROM mahasiswa m 
+                                  JOIN program_studi p ON m.mhsProdiId = p.prodiId 
+                                  LEFT JOIN dosen d ON m.mhsPaId = d.dsnNidn " . $where_clause . " ORDER BY m.mhsNama ASC";
+                $result_mahasiswa = $conn->query($sql_mahasiswa);
+                
+                if ($result_mahasiswa && $result_mahasiswa->num_rows > 0) {
+                     $no = 1;
+                     $table_data = '';
+                     $status_akademik_map = ['A' => 'Aktif', 'L' => 'Lulus', 'C' => 'Cuti', 'D' => 'DO', 'K' => 'Keluar', 'M' => 'Meninggal'];
+                     while($row = $result_mahasiswa->fetch_assoc()) {
+                         $pa_nama = htmlspecialchars($row['PaNama'] ?? 'N/A');
+                         $status_akademik = $status_akademik_map[$row['mhsStsAkademik']];
+                         $table_data .= '
+                             <tr>
+                                 <td>' . $no++ . '.</td>
+                                 <td>' . htmlspecialchars($row['mhsNim']) . '</td>
+                                 <td style="text-align: left; font-weight: bold;">' . htmlspecialchars($row['mhsNama']) . '</td>
+                                 <td>' . htmlspecialchars($row['prodiNama']) . '</td>
+                                 <td>' . $pa_nama . '</td>
+                                 <td>' . $status_akademik . '</td>
+                                 <td>
+                                     <a href="?modul=datamaster&submenu=mahasiswa&action=edit&id=' . $row['mhsNim'] . '" class="btn-aksi" style="color: blue;">Ubah</a> | 
+                                     <a href="?modul=datamaster&submenu=mahasiswa&action=delete&id=' . $row['mhsNim'] . '" class="btn-aksi" style="color: red;" onclick="return confirm(\'Hapus data mahasiswa ' . $row['mhsNama'] . '?\')">Hapus</a>
+                                 </td>
+                             </tr>';
+                     }
                 } else {
-                     $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
+                     $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Tidak ditemukan data Mahasiswa untuk Program Studi yang dipilih.**</td></tr>';
                 }
+            } else {
+                 $table_data = '<tr><td colspan="7" style="text-align: center; padding: 5px;">**Filter Program Studi harus dipilih.**</td></tr>';
             }
-             $content_html = ' 
-                 <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
-                 ' . $pencarian_form . ' 
-                 <div class="data-actions">' . $add_button_datamaster . '</div> 
-                 <table class="data-kelas-table"> 
-                     ' . $table_header . ' 
-                     <tbody> 
-                         ' . $table_data . ' 
-                     </tbody> 
-                 </table>';
         }
+        
+         $content_html = ' 
+             <h2 class="submenu-data-title">' . $submenu_title . '</h2> 
+             ' . $pencarian_form . ' 
+             <div class="data-actions">' . $add_button_datamaster . '</div> 
+             <table class="data-kelas-table"> 
+                 ' . $table_header . ' 
+                 <tbody> 
+                     ' . $table_data . ' 
+                 </tbody> 
+             </table>';
+    }
+}
 		
     } else {
         // Submenu default Data Master
@@ -2172,6 +2441,21 @@ if ($submenu && isset(${$modul . '_menu_items'}[$submenu])) {
             border-top: 1px solid #ccc;
             border-radius: 0 0 5px 5px;
         }
+
+        /* Form dengan Grid Layout */
+.crud-form input[type="date"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+.crud-form small {
+    font-size: 0.85em;
+    color: #666;
+}
         
     </style>
     <script>
