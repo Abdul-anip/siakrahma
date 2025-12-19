@@ -3505,12 +3505,12 @@ if ($modul == 'beranda') {
     // SUBMENU User
    
     $content_html = '
-			<h2>Daftar Submenu Modul user</h2> 
+			<h2>Rapor Semester</h2> 
             <hr> 
             <div class="icon-grid" style="grid-template-columns: repeat(2, 1fr);">
-				<a href="?modul=user&submenu=Kotak Pesan" class="icon-box"><img src="https://media.istockphoto.com/id/520241473/id/vektor/kartu-laporan.jpg?s=612x612&w=0&k=20&c=LW6nLvGYSg_wq64QNabGE4pKGR6Hlpxvor-Z64J5bbM=" alt="Kotak Pesan"><span>Kotak Pesan</span></a>
-                <a href="?modul=user&submenu=Ubah Password" class="icon-box"><img src="https://media.istockphoto.com/id/520241473/id/vektor/kartu-laporan.jpg?s=612x612&w=0&k=20&c=LW6nLvGYSg_wq64QNabGE4pKGR6Hlpxvor-Z64J5bbM=" alt="Ubah Password"><span>Ubah Password</span></a>
+				<a href="#" class="icon-box"><img src="https://media.istockphoto.com/id/520241473/id/vektor/kartu-laporan.jpg?s=612x612&w=0&k=20&c=LW6nLvGYSg_wq64QNabGE4pKGR6Hlpxvor-Z64J5bbM=" alt="Kotak Pesan"><span>Rapor Semester</span></a>
 			</div>';
+            
 	}
 // Menentukan judul halaman untuk ditampilkan di tag <title>
 if ($submenu && isset(${$modul . '_menu_items'}[$submenu])) {
@@ -3923,6 +3923,135 @@ if ($submenu && isset(${$modul . '_menu_items'}[$submenu])) {
 .crud-form small {
     font-size: 0.85em;
     color: #666;
+}
+
+
+/* CSS untuk Filter Box Data Master */
+.filter-box {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filter-box h4 {
+    margin: 0 0 15px 0;
+    color: var(--color-dark-blue);
+    font-size: 1.1em;
+    border-bottom: 2px solid var(--color-header-orange);
+    padding-bottom: 8px;
+}
+
+.filter-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+    font-size: 0.9em;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 0.9em;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    border-color: var(--color-accent-blue);
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.15);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+
+.btn-filter {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-filter:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-reset {
+    padding: 10px 24px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    transition: all 0.3s;
+}
+
+.btn-reset:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+.filter-info {
+    background-color: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    padding: 12px 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #0c5460;
+}
+
+.filter-count {
+    font-weight: 600;
+    color: var(--color-dark-blue);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .filter-form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .btn-filter,
+    .btn-reset {
+        width: 100%;
+    }
 }
         
     </style>
